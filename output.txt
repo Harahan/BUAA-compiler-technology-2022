@@ -1,38 +1,50 @@
-CONSTTK const 2
-INTTK int 2
-IDENFR array 2
-LBRACK [ 2
-INTCON 2 2
-RBRACK ] 2
-ASSIGN = 2
-LBRACE { 2
-INTCON 1 2
-COMMA , 2
-INTCON 2 2
-RBRACE } 2
-SEMICN ; 2
-INTTK int 4
-MAINTK main 4
-LPARENT ( 4
-RPARENT ) 4
-LBRACE { 4
-INTTK int 5
-IDENFR c 5
-SEMICN ; 5
-IDENFR c 6
-ASSIGN = 6
-GETINTTK getint 6
-LPARENT ( 6
-RPARENT ) 6
-SEMICN ; 6
-PRINTFTK printf 7
-LPARENT ( 7
-STRCON "output is %d" 7
-COMMA , 7
-IDENFR c 7
-RPARENT ) 7
-SEMICN ; 7
-RETURNTK return 8
-IDENFR c 8
-SEMICN ; 8
-RBRACE } 11
+CONSTTK const
+INTTK int
+IDENFR array
+LBRACK [
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<ConstExp>
+RBRACK ]
+ASSIGN =
+LBRACE {
+INTCON 1
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<ConstExp>
+<ConstInitVal>
+COMMA ,
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<ConstExp>
+<ConstInitVal>
+RBRACE }
+<ConstInitVal>
+<ConstDef>
+SEMICN ;
+<ConstDef>
+INTTK int
+MAINTK main
+LPARENT (
+RPARENT )
+LBRACE {
+INTTK int
+IDENFR c
+<VarDef>
+SEMICN ;
+<VarDef>
+RBRACE }
+<Block>
+<MainFuncDef>
+<CompUnit>

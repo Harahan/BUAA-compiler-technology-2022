@@ -1,4 +1,5 @@
 import Lexer.Lexer;
+import Syntax.Parser;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,6 +29,7 @@ public class Compiler {
     public static void main(String[] args) {
         String source = read("testfile.txt");
         Lexer lexer = new Lexer(source);
-        write(lexer.toString(), "output.txt");
+        Parser parser = new Parser(lexer.getTokens());
+        write(parser.toString(), "output.txt");
     }
 }
