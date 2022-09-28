@@ -33,7 +33,7 @@ public class FuncDef {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(funcType + "\n" + ident + "\n" + lPTK + "\n");
+        StringBuilder sb = new StringBuilder(funcType + "\n" + "<FuncType>" + "\n" + ident + "\n" + lPTK + "\n");
         if (funcFParams != null) sb.append(funcFParams).append("\n");
         sb.append(rPTK).append("\n").append(block).append("\n");
         return sb + "<FuncDef>";

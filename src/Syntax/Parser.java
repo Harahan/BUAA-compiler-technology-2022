@@ -14,6 +14,7 @@ import Syntax.Expr.Unary.Number;
 import Syntax.Expr.Unary.PrimaryExp;
 import Syntax.Expr.Unary.UnaryExp;
 import Syntax.Func.*;
+import Syntax.Stmt.BlockStmt;
 import Syntax.Stmt.IfStmt;
 import Syntax.Stmt.Simple.*;
 import Syntax.Stmt.Stmt;
@@ -170,16 +171,18 @@ public class Parser {
             return initVal;
         }
         initVal = new InitArr(now, true);
+        peek();
         while (getType(now) != Type.RBRACE) {
-            peek();
             ((InitArr) initVal).addVar(parseConstInitVal());
-            if (getType(now) == Type.COMMA) ((InitArr) initVal).addComma(now);
-            else if (getType(now) == Type.RBRACE) ((InitArr) initVal).setRBTK(now);
-            else {
+            if (getType(now) == Type.COMMA) {
+                ((InitArr) initVal).addComma(now);
+                peek();
+            } else if (getType(now) != Type.RBRACE) {
                 System.out.println("parseConstInitVal error!");
                 System.exit(-1);
             }
         }
+        ((InitArr) initVal).setRBTK(now);
         peek();
         return initVal;
     }
@@ -398,8 +401,9 @@ public class Parser {
                     <InputStmt> | <OutputStmt> ] ';'
     <IfStmt> -> 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
     <WhileStmt> -> 'while' '(' Cond ')' Stmt
+    <BlockItem> -> Block
 
-    <Stmt> -> <SimpleStmt> | <IfStmt> | <WhileStmt>
+    <Stmt> -> <SimpleStmt> | <IfStmt> | <WhileStmt> | <BlockItem>
     ----------------------------------------------------
     Block: "{"....
     LVal : Ident {'[' Exp ']'}
@@ -409,6 +413,7 @@ public class Parser {
     public Stmt parseStmt() {
         if (getType(now) == Type.IFTK) return new Stmt(parseIfStmt());
         else if (getType(now) == Type.WHILETK) return new Stmt(parseWhileStmt());
+        else if (getType(now) == Type.LBRACE) return new Stmt(new BlockStmt(parseBlock()));
         else return new Stmt(parseSimpleStmt());
     }
 
@@ -433,7 +438,7 @@ public class Parser {
         } else if (getType(now) == Type.RETURNTK) {
             simpleStmt = new SimpleStmt(parseReturnStmt());
         } else if (getType(now) == Type.PRINTFTK) {
-            simpleStmt = new SimpleStmt(parseOutStmt());
+            simpleStmt = new SimpleStmt(parseOutputStmt());
         } else if (getType(now) == Type.LPARENT || getType(now) == Type.INTCON || getType(now) == Type.MINU
                 || getType(now) == Type.PLUS || getType(now) == Type.NOT
                 || (getType(now) == Type.IDENFR && getType(nxt) == Type.LPARENT)) {
@@ -479,7 +484,7 @@ public class Parser {
         ifStmt.setRPTK(now);
         peek();
         ifStmt.setIfStmt(parseStmt());
-        if (getType(now) != Type.SEMICN) {
+        if (getType(now) == Type.ELSETK) {
             ifStmt.setElseTK(now);
             peek();
             ifStmt.setElseStmt(parseStmt());
@@ -566,7 +571,7 @@ public class Parser {
     /*
     <OutputStmt> ->  'printf''('FormatString{','Exp}')'
      */
-    public OutputStmt parseOutStmt() {
+    public OutputStmt parseOutputStmt() {
         OutputStmt outputStmt = new OutputStmt(now);
         peek();
         outputStmt.setLPTK(now);

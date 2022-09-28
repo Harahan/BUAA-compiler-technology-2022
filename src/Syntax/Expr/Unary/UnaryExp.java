@@ -41,7 +41,7 @@ public class UnaryExp {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (primaryExp != null) sb.append(primaryExp).append("\n");
-        else if (identTk != null) sb.append(identTk).append("\n").append(lPTk.toString()).append("\n").append(funcRParams).append("\n").append(rPTk).append("\n");
+        else if (identTk != null) sb.append(identTk).append("\n").append(lPTk.toString()).append("\n").append(funcRParams != null ? funcRParams + "\n" : "").append(rPTk).append("\n");
         else sb.append(unaryOp).append("\n<UnaryOp>\n").append(unaryExp).append("\n");
         return sb + "<UnaryExp>";
     }
