@@ -334,10 +334,6 @@ public class Parser {
      */
     public MainFuncDef parseMainFuncDef() {
         peek();
-        if (getType(pre) != Type.INTTK || getType(now) != Type.MAINTK) {
-            System.out.println("parseMainFuncDef error!");
-            System.exit(-1);
-        }
         MainFuncDef mainfuncDef = new MainFuncDef(pre, now);
         peek();
         if (getType(now) == Type.LPARENT) mainfuncDef.setLPTK(now);
@@ -348,7 +344,7 @@ public class Parser {
         peek();
         if (getType(now) == Type.RPARENT) mainfuncDef.setRPTK(now);
         else {
-            System.out.println("parseFuncDef error!");
+            System.out.println("parseMainFuncDef error!");
             System.exit(-1);
         }
         peek();
