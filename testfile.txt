@@ -1,9 +1,6 @@
-
-const int array[2] = {1,2};
-
 int main(){
     int c;
-    /*gcqiwcg\n
-    hcoiwijc*/
+    c= getint();
+    printf("%d",c);
+    return c;
 }
-//itytrtde

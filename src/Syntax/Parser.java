@@ -14,7 +14,10 @@ import Syntax.Expr.Unary.Number;
 import Syntax.Expr.Unary.PrimaryExp;
 import Syntax.Expr.Unary.UnaryExp;
 import Syntax.Func.*;
+import Syntax.Stmt.IfStmt;
+import Syntax.Stmt.Simple.*;
 import Syntax.Stmt.Stmt;
+import Syntax.Stmt.WhileStmt;
 import Syntax.Util.Index;
 
 import java.util.ArrayList;
@@ -44,8 +47,8 @@ public class Parser {
         nxt = (0 <= pos && pos < tokens.size()) ? tokens.get(pos) : null;
     }
 
-    private void retract() {
-        pos -= 2;
+    private void retract(int step) {
+        pos -= (step + 1);
         if (pos < 0) {
             System.out.println("retract error!");
             System.exit(-1);
@@ -70,14 +73,14 @@ public class Parser {
             peek();
             if (getType(pre) == Type.CONSTTK || (getType(pre) == Type.INTTK
                     && getType(now) == Type.IDENFR && getType(nxt) != Type.LPARENT)) {
-                retract();
+                retract(1);
                 compUnit.addDecl(parseDecl());
             } else if ((getType(pre) == Type.VOIDTK || getType(pre) == Type.INTTK)
                     && getType(now) == Type.IDENFR && getType(nxt) == Type.LPARENT) {
-                retract();
+                retract(1);
                 compUnit.addFuncDef(parseFuncDef());
             } else if (getType(pre) == Type.INTTK && getType(now) == Type.MAINTK) {
-                retract();
+                retract(1);
                 compUnit.setMainFuncDef(parseMainFuncDef());
             } else {
                 System.out.println("parseCompUnit error!");
@@ -379,14 +382,19 @@ public class Parser {
     | LVal '=' 'getint''('')'';'
     | 'printf''('FormatString{','Exp}')'';'
     --------------------------------------------------
-    Stmt -> LVal '=' ( Exp ';' |  'getint''('')'';')
-    | [Exp] ';'
-    | Block
-    | 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
-    | 'while' '(' Cond ')' Stmt
-    | 'break' ';' | 'continue' ';'
-    | 'return' [Exp] ';'
-    | 'printf''('FormatString{','Exp}')'';'
+    <AssignStmt> -> LVal '=' Exp
+    <ExpStmt> -> Exp
+    <LoopStmt> -> 'break' | 'continue'
+    <ReturnStmt> -> 'return' [Exp]
+    <InputStmt> -> <LVal> '=' 'getint' '(' ')'
+    <OutputStmt> ->  'printf''('FormatString{','Exp}')'
+
+    <SimpleStmt> -> [ <AssignStmt> | <ExpStmt> | <LoopStmt> | <ReturnStmt> |
+                    <InputStmt> | <OutputStmt> ] ';'
+    <IfStmt> -> 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
+    <WhileStmt> -> 'while' '(' Cond ')' Stmt
+
+    <Stmt> -> <SimpleStmt> | <IfStmt> | <WhileStmt>
     ----------------------------------------------------
     Block: "{"....
     LVal : Ident {'[' Exp ']'}
@@ -394,7 +402,184 @@ public class Parser {
     故如果仅有一个 LVal 且 LVal 后面跟 "=" 那么为第一种情况
      */
     public Stmt parseStmt() {
-        return null;
+        if (getType(now) == Type.IFTK) return new Stmt(parseIfStmt());
+        else if (getType(now) == Type.WHILETK) return new Stmt(parseWhileStmt());
+        else return new Stmt(parseSimpleStmt());
+    }
+
+    /*
+    <SimpleStmt> -> [ <AssignStmt> | <ExpStmt> | <LoopStmt> | <ReturnStmt> |
+                    <InputStmt> | <OutputStmt> ] ';'
+     -------------------------------------------------------------------------
+     AssignStmt: LVal "=" Exp
+     ExpStmt:   Exp
+     LoopStmt: "break" | "continue"
+     ReturnStmt: "return"
+     InputStmt: LVal "=" "getint"
+     OutputStmt: "printf"
+     ---------------------------------------------------------------------------
+      LVal : Ident {'[' Exp ']'}
+      Exp: LVal | "(" Exp ")" | IntConst | Ident "(" ... | "+" | "-" | "!"
+     */
+    public SimpleStmt parseSimpleStmt() {
+        SimpleStmt simpleStmt = null;
+        if (getType(now) == Type.BREAKTK || getType(now) == Type.CONTINUETK) {
+            simpleStmt = new SimpleStmt(parseLoopStmt());
+        } else if (getType(now) == Type.RETURNTK) {
+            simpleStmt = new SimpleStmt(parseReturnStmt());
+        } else if (getType(now) == Type.PRINTFTK) {
+            simpleStmt = new SimpleStmt(parseOutStmt());
+        } else if (getType(now) == Type.LPARENT || getType(now) == Type.INTCON || getType(now) == Type.MINU
+                || getType(now) == Type.PLUS || getType(now) == Type.NOT
+                || (getType(now) == Type.IDENFR && getType(nxt) == Type.LPARENT)) {
+            simpleStmt = new SimpleStmt(parseExpStmt());
+        } else if (getType(now) != Type.SEMICN) {
+            int prePos = pos - 1; // now_pos + 1
+            // System.out.println(prePos + " " + pre + " " + now + " " + nxt);
+            parseLVal();
+            // System.out.println(pos + " " + pre + " " + now + " " + nxt);
+            Token tmpNow = now, tmpNxt = nxt;
+            retract((pos - 1) - prePos);
+            if (getType(tmpNow) == Type.ASSIGN) {
+                if (getType(tmpNxt) == Type.GETINTTK) simpleStmt = new SimpleStmt(parseInputStmt());
+                else simpleStmt = new SimpleStmt(parseAssignStmt());
+            } else {
+                simpleStmt = new SimpleStmt(parseExpStmt());
+            }
+        }
+        if (getType(now) == Type.SEMICN) {
+            if (simpleStmt != null) simpleStmt.setSemicolonTk(now);
+            else simpleStmt = new SimpleStmt(now);
+            peek();
+        } else {
+            System.out.println("parseSimpleStmt error!");
+            System.exit(-1);
+        }
+        return simpleStmt;
+    }
+
+    /*
+    <IfStmt> -> 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
+     */
+    public IfStmt parseIfStmt() {
+        IfStmt ifStmt = new IfStmt(now);
+        peek();
+        ifStmt.setLPTK(now);
+        peek();
+        ifStmt.setCond(parseCond());
+        if (getType(now) != Type.RPARENT) {
+            System.out.println("parseIfStmt error!");
+            System.exit(-1);
+        }
+        ifStmt.setRPTK(now);
+        peek();
+        ifStmt.setIfStmt(parseStmt());
+        if (getType(now) != Type.SEMICN) {
+            ifStmt.setElseTK(now);
+            peek();
+            ifStmt.setElseStmt(parseStmt());
+        }
+        return ifStmt;
+    }
+
+    /*
+    <WhileStmt> -> 'while' '(' Cond ')' Stmt
+     */
+    public WhileStmt parseWhileStmt() {
+        WhileStmt whileStmt = new WhileStmt(now);
+        peek();
+        whileStmt.setLPTK(now);
+        peek();
+        whileStmt.setCond(parseCond());
+        if (getType(now) != Type.RPARENT) {
+            System.out.println("parseWhileStmt error!");
+            System.exit(-1);
+        }
+        whileStmt.setRPTK(now);
+        peek();
+        whileStmt.setStmt(parseStmt());
+        return whileStmt;
+    }
+
+    /*
+    <AssignStmt> -> LVal '=' Exp
+     */
+    public AssignStmt parseAssignStmt() {
+        AssignStmt assignStmt = new AssignStmt(parseLVal());
+        assignStmt.setAssignTK(now);
+        peek();
+        assignStmt.setExp(parseExp());
+        return assignStmt;
+    }
+
+    /*
+    <ExpStmt> -> Exp
+     */
+    public ExpStmt parseExpStmt() {
+        return new ExpStmt(parseExp());
+    }
+
+    /*
+    <LoopStmt> -> 'break' | 'continue'
+     */
+    public LoopStmt parseLoopStmt() {
+        LoopStmt loopStmt = new LoopStmt(now);
+        peek();
+        return loopStmt;
+    }
+
+    /*
+    <ReturnStmt> -> 'return' [Exp]
+     */
+    public ReturnStmt parseReturnStmt() {
+        ReturnStmt returnStmt = new ReturnStmt(now);
+        peek();
+        if (getType(now) != Type.SEMICN) returnStmt.setExp(parseExp());
+        return returnStmt;
+    }
+
+    /*
+    <InputStmt> -> <LVal> '=' 'getint' '(' ')'
+     */
+    public InputStmt parseInputStmt() {
+        InputStmt inputStmt = new InputStmt(parseLVal());
+        inputStmt.setAssignTK(now);
+        peek();
+        inputStmt.setGetintTK(now);
+        peek();
+        inputStmt.setLPTK(now);
+        peek();
+        if (getType(now) != Type.RPARENT) {
+            System.out.println("parseInputStmt error!");
+            System.exit(-1);
+        }
+        inputStmt.setRPTK(now);
+        peek();
+        return inputStmt;
+    }
+
+    /*
+    <OutputStmt> ->  'printf''('FormatString{','Exp}')'
+     */
+    public OutputStmt parseOutStmt() {
+        OutputStmt outputStmt = new OutputStmt(now);
+        peek();
+        outputStmt.setLPTK(now);
+        peek();
+        outputStmt.setSTK(now);
+        peek();
+        while (getType(now) != Type.RPARENT) {
+            outputStmt.addComma(now);
+            peek();
+            outputStmt.addExp(parseExp());
+            if (getType(now) != Type.COMMA && getType(now) != Type.RPARENT) {
+                System.out.println("parseOutStmt error!");
+                System.exit(-1);
+            }
+        }
+        outputStmt.setRPTK(now);
+        peek();
+        return outputStmt;
     }
 
     // --------------------------------------------------- EXP ---------------------------------------------------------
@@ -461,8 +646,7 @@ public class Parser {
         } else if (getType(now) == Type.INTCON) {
             peek();
             return new PrimaryExp(new Number(pre));
-        }
-        else {
+        } else {
             System.out.println("parsePrimaryExp error!");
             System.exit(-1);
         }
