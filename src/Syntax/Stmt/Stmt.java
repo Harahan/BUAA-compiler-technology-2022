@@ -23,6 +23,6 @@ public class Stmt {
     @Override
     public String toString() {
         return (spl != null ? spl :
-                ifStmt != null ? ifStmt : whileStmt) + "\n" + "<Stmt>";
+                (ifStmt != null ? ifStmt : whileStmt)) + "\n" + "<Stmt>";
     }
 }

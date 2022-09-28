@@ -36,6 +36,6 @@ public class PrimaryExp {
     public String toString() {
         if (lval != null) return lval + "\n" + "<PrimaryExp>";
         if (number != null) return number + "\n" + "<PrimaryExp>";
-        return lPTk + "\n" + exp + "\n" + rpTk + "<PrimaryExp>";
+        return lPTk + "\n" + exp + "\n" + rpTk + "\n" + "<PrimaryExp>";
     }
 }

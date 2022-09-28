@@ -46,6 +46,6 @@ public class Decl {
             sb.append(commas.get(i)).append("\n").append(defs.get(i)).append("\n");
         }
         sb.append(semicolonTk).append("\n");
-        return sb + (constTk == null ? "<VarDef>" : "<ConstDef>");
+        return sb + (constTk == null ? "<VarDecl>" : "<ConstDecl>");
     }
 }

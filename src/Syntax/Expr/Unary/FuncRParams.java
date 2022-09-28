@@ -2,14 +2,13 @@ package Syntax.Expr.Unary;
 
 import Lexer.Token;
 import Syntax.Expr.Multi.Exp;
-import Syntax.Func.FuncDef;
 
 import java.util.ArrayList;
 
 public class FuncRParams {
     private final Exp first;
-    private ArrayList<Token> commas;
-    private ArrayList<Exp> exps;
+    private final ArrayList<Token> commas = new ArrayList<>();
+    private final ArrayList<Exp> exps = new ArrayList<>();
 
     public FuncRParams(Exp first) {
         this.first = first;

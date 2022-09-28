@@ -36,6 +36,10 @@ public class Parser {
         compUnit = parseCompUnit();
     }
 
+    private void deBug() {
+        System.out.println(pre + " " + now + " " + nxt);
+    }
+
     @Override
     public String toString() {
         return compUnit.toString();
@@ -287,7 +291,8 @@ public class Parser {
      */
     public FuncFParams parseFuncFParams() {
         FuncFParams funcFParams = new FuncFParams(parseFuncFParam());
-        while (getType(now) != Type.COMMA) {
+        // deBug();
+        while (getType(now) == Type.COMMA) {
             funcFParams.addComma(now);
             peek();
             funcFParams.addFuncFParam(parseFuncFParam());
