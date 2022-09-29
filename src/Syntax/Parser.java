@@ -397,9 +397,9 @@ public class Parser {
                     <InputStmt> | <OutputStmt> ] ';'
     <IfStmt> -> 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
     <WhileStmt> -> 'while' '(' Cond ')' Stmt
-    <BlockItem> -> Block
+    <BlockStmt> -> Block
 
-    <Stmt> -> <SimpleStmt> | <IfStmt> | <WhileStmt> | <BlockItem>
+    <Stmt> -> <SimpleStmt> | <IfStmt> | <WhileStmt> | <BlockStmt>
     ----------------------------------------------------
     Block: "{"....
     LVal : Ident {'[' Exp ']'}
