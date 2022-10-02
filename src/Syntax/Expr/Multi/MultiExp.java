@@ -3,7 +3,6 @@ package Syntax.Expr.Multi;
 import Lexer.Token;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class MultiExp<T> {
     private final String name;

@@ -10,8 +10,6 @@ public class MainFuncDef extends FuncDef {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(funcType + "\n" + ident + "\n" + lPTK + "\n");
-        sb.append(rPTK).append("\n").append(block).append("\n");
-        return sb + "<MainFuncDef>";
+        return funcType + "\n" + ident + "\n" + lPTK + "\n" + rPTK + "\n" + block + "\n" + "<MainFuncDef>";
     }
 }

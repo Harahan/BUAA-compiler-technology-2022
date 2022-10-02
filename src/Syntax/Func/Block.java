@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class Block {
     private final Token lBTK;
     private Token rBTK;
-    private ArrayList<BlockItem> blockItems = new ArrayList<>();
+    private final ArrayList<BlockItem> blockItems = new ArrayList<>();
 
     public Block(Token lBTK) {
         this.lBTK = lBTK;

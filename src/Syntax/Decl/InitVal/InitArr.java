@@ -9,8 +9,8 @@ public class InitArr implements InitVal {
     private final boolean isConst;
     private Token rBTK;
     private InitVal first;
-    private ArrayList<InitVal> vars = new ArrayList<>();
-    private ArrayList<Token> commas = new ArrayList<>();
+    private final ArrayList<InitVal> vars = new ArrayList<>();
+    private final ArrayList<Token> commas = new ArrayList<>();
 
     public InitArr(Token lBTk, boolean isConst) {
         this.lBTk = lBTk;

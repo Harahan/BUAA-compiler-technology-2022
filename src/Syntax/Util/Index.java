@@ -4,7 +4,7 @@ import Lexer.Token;
 import Syntax.Expr.Multi.Exp;
 
 public class Index {
-    private Token lBTk;
+    private final Token lBTk;
     private Token rBTk;
     private Exp exp;
 

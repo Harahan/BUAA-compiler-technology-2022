@@ -7,8 +7,8 @@ import Syntax.Func.MainFuncDef;
 import java.util.ArrayList;
 
 public class CompUnit {
-    private ArrayList<Decl> decls = new ArrayList<>();
-    private ArrayList<FuncDef> funcDefs = new ArrayList<>();
+    private final ArrayList<Decl> decls = new ArrayList<>();
+    private final ArrayList<FuncDef> funcDefs = new ArrayList<>();
     private MainFuncDef mainFuncDef;
 
     public void addDecl(Decl decl) {

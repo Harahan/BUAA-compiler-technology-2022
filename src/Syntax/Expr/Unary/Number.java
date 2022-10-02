@@ -3,7 +3,7 @@ package Syntax.Expr.Unary;
 import Lexer.Token;
 
 public class Number {
-    private Token intConstTk;
+    private final Token intConstTk;
 
     public Number(Token intConstTk) {
         this.intConstTk = intConstTk;

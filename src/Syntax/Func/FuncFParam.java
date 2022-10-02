@@ -23,8 +23,8 @@ public class FuncFParam {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(bType + "\n" + ident + "\n");
-        for (int i = 0; i < indexes.size(); ++i) {
-            sb.append(indexes.get(i)).append("\n");
+        for (Index index : indexes) {
+            sb.append(index).append("\n");
         }
         return sb + "<FuncFParam>";
     }
