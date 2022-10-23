@@ -6,6 +6,11 @@ public class ConstExp extends Exp {
     }
 
     @Override
+    public AddExp getAddExp() {
+        return super.getAddExp();
+    }
+
+    @Override
     public String toString() {
         return super.addExp + "\n" + "<ConstExp>";
     }

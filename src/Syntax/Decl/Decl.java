@@ -37,6 +37,14 @@ public class Decl {
         this.semicolonTk = semicolonTk;
     }
 
+    public Def getFirst() {
+        return first;
+    }
+
+    public ArrayList<Def> getDefs() {
+        return defs;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

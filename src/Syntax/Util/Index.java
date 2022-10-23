@@ -24,4 +24,8 @@ public class Index {
     public String toString() {
         return lBTk + (exp == null ? "" : ("\n" + exp)) + "\n" + rBTk;
     }
+
+    public Exp getExp() {
+        return exp;
+    }
 }

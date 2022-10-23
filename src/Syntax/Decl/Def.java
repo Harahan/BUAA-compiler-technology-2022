@@ -12,7 +12,7 @@ public class Def {
     private final Token identTk;
     private final ArrayList<Index> indexes = new ArrayList<>();
     private Token assignTk;
-    private InitVal initVal;
+    private InitVal initVal = null;
 
     public Def(boolean isConst, Token identTk) {
         this.isConst = isConst;
@@ -39,5 +39,33 @@ public class Def {
         for (Index index : indexes) sb.append(index).append("\n");
         if (assignTk != null) sb.append(assignTk).append("\n").append(initVal).append("\n");
         return sb + (isConst ? "<ConstDef>" : "<VarDef>");
+    }
+
+    public Token getIdentTk() {
+        return identTk;
+    }
+
+    public boolean isConst() {
+        return isConst;
+    }
+
+    public boolean isArr() {
+        return !indexes.isEmpty();
+    }
+
+    public boolean isInit() {
+        return initVal != null;
+    }
+
+    public InitVal getInitVal() {
+        return initVal;
+    }
+
+    public int getDim() {
+        return indexes.size();
+    }
+
+    public ArrayList<Index> getIndexes() {
+        return indexes;
     }
 }

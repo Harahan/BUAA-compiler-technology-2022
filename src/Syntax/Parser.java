@@ -1,5 +1,6 @@
 package Syntax;
 
+import Error.Error;
 import Lexer.Token;
 import Lexer.Type;
 import Syntax.Decl.Decl;
@@ -20,6 +21,7 @@ import Syntax.Stmt.Simple.*;
 import Syntax.Stmt.Stmt;
 import Syntax.Stmt.WhileStmt;
 import Syntax.Util.Index;
+import Error.ErrorTable;
 
 import java.util.ArrayList;
 
@@ -37,6 +39,10 @@ public class Parser {
         compUnit = parseCompUnit();
     }
 
+    public CompUnit getCompUnit() {
+        return compUnit;
+    }
+
     private void deBug() {
         System.out.println(pre + " " + now + " " + nxt);
     }
@@ -50,6 +56,12 @@ public class Parser {
         pre = (0 <= pos - 1 && pos - 1 < tokens.size()) ? tokens.get(pos - 1) : null;
         now = (0 <= pos && pos < tokens.size()) ? tokens.get(pos++) : null;
         nxt = (0 <= pos && pos < tokens.size()) ? tokens.get(pos) : null;
+    }
+
+    private void insert(Token token) {
+        retract(1);
+        tokens.add(pos, token);
+        peek();
     }
 
     private void retract(int step) {
@@ -115,6 +127,8 @@ public class Parser {
 
     /*
     ConstDecl -> 'const' BType ConstDef { ',' ConstDef } ';'
+    ------------------------------------------------------------
+    Error: i
      */
     public Decl parseConstDecl() {
         peek();
@@ -125,8 +139,10 @@ public class Parser {
             if (getType(now) == Type.COMMA) constDecl.addComma(now);
             else if (getType(now) == Type.SEMICN) constDecl.setSemicolonTk(now);
             else {
-                System.out.println("parseConstDecl error!");
-                System.exit(-1);
+                // i
+                insert(new Token(Type.SEMICN, pre.getLine()));
+                constDecl.setSemicolonTk(now);
+                ErrorTable.add(new Error(Error.Type.LACK_SEMICOLON, pre.getLine()));
             }
         }
         peek();
@@ -136,6 +152,7 @@ public class Parser {
     /*
     ConstDef -> Ident { '[' ConstExp ']' } '=' ConstInitVal
     --------------------------------------------------------
+    Error: k
      */
     public Def parseConstDef() {
         Def constDef = new Def(true, now);
@@ -144,14 +161,13 @@ public class Parser {
             Index idx  = new Index(now);
             peek();
             idx.setExp(parseConstExp());
-            if (getType(now) == Type.RBRACK) {
-                idx.setRBTk(now);
-                constDef.addIndex(idx);
-                peek();
-            } else {
-                System.out.println("parseConstDef error!");
-                System.exit(-1);
+            if (getType(now) != Type.RBRACK) {
+                insert(new Token(Type.RBRACK, pre.getLine()));
+                ErrorTable.add(new Error(Error.Type.LACK_RIGHT_BRACKET, pre.getLine()));
             }
+            idx.setRBTk(now);
+            constDef.addIndex(idx);
+            peek();
         }
         constDef.setAssignTk(now);
         peek();
@@ -189,6 +205,8 @@ public class Parser {
 
     /*
     VarDecl -> BType VarDef { ',' VarDef } ';'
+    ------------------------------------------
+    Error: i
      */
     public Decl parseVarDecl() {
         Decl varDecl = new Decl(null, now);
@@ -198,8 +216,10 @@ public class Parser {
             if (getType(now) == Type.COMMA) varDecl.addComma(now);
             else if (getType(now) == Type.SEMICN) varDecl.setSemicolonTk(now);
             else {
-                System.out.println("parseVarDecl error!");
-                System.exit(-1);
+                // i
+                insert(new Token(Type.SEMICN, pre.getLine()));
+                varDecl.setSemicolonTk(now);
+                ErrorTable.add(new Error(Error.Type.LACK_SEMICOLON, pre.getLine()));
             }
         }
         peek();
@@ -210,6 +230,8 @@ public class Parser {
     VarDef -> Ident { '[' ConstExp ']' } | Ident { '[' ConstExp ']' } '=' InitVal
     -----------------------------------------------------------------------------
     VarDef -> Ident { '[' ConstExp ']' } [ '=' InitVal ]
+    -----------------------------------------------------------
+    Error: k
      */
     public Def parseVarDef() {
         Def varDef = new Def(false, now);
@@ -218,14 +240,13 @@ public class Parser {
             Index idx  = new Index(now);
             peek();
             idx.setExp(parseConstExp());
-            if (getType(now) == Type.RBRACK) {
-                idx.setRBTk(now);
-                varDef.addIndex(idx);
-                peek();
-            } else {
-                System.out.println("parseVarDef error!");
-                System.exit(-1);
+            if (getType(now) != Type.RBRACK) {
+                insert(new Token(Type.RBRACK, pre.getLine()));
+                ErrorTable.add(new Error(Error.Type.LACK_RIGHT_BRACKET, pre.getLine()));
             }
+            idx.setRBTk(now);
+            varDef.addIndex(idx);
+            peek();
         }
         if (getType(now) == Type.ASSIGN) {
             varDef.setAssignTk(now);
@@ -267,6 +288,9 @@ public class Parser {
     FuncDef -> FuncType Ident '(' [FuncFParams] ')' Block
     -------------------------------------------------------
     FuncType: "void" | "int"
+    FuncFParams: "int"
+    ----------------------------------------------------------
+    Error: j
      */
     public FuncDef parseFuncDef() {
         peek();
@@ -278,11 +302,12 @@ public class Parser {
             System.exit(-1);
         }
         peek();
-        if (getType(now) != Type.RPARENT) funcDef.setFuncFParams(parseFuncFParams());
+        if (getType(now) == Type.INTTK) funcDef.setFuncFParams(parseFuncFParams());
         if (getType(now) == Type.RPARENT) funcDef.setRPTK(now);
         else {
-            System.out.println("parseFuncDef error!");
-            System.exit(-1);
+            insert(new Token(Type.RPARENT, pre.getLine()));
+            funcDef.setRPTK(now);
+            ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
         }
         peek();
         funcDef.setBlock(parseBlock());
@@ -306,6 +331,9 @@ public class Parser {
     /*
     FuncFParam -> BType Ident ['[' ']' { '[' ConstExp ']' }]
     BType: "int"
+    ConstExp: Ident ... | "(" ... | IntConst | "+" | "-" | "!"
+    --------------------------------------------------------------
+    Error: k
      */
     public FuncFParam parseFuncFParam() {
         peek();
@@ -314,15 +342,16 @@ public class Parser {
         while (getType(now) == Type.LBRACK) {
             Index idx = new Index(now);
             peek();
-            if (getType(now) != Type.RBRACK) idx.setExp(parseConstExp());
-            if (getType(now) == Type.RBRACK) {
-                idx.setRBTk(now);
-                funcFParam.addIndex(idx);
-                peek();
-            } else {
-                System.out.println("parseFuncParam error!");
-                System.exit(-1);
+            if (getType(now) == Type.IDENFR || getType(now) == Type.LPARENT || getType(now) == Type.INTCON
+                    || getType(now) == Type.PLUS || getType(now) == Type.MINU || getType(now) == Type.NOT)
+                idx.setExp(parseConstExp());
+            if (getType(now) != Type.RBRACK) {
+                insert(new Token(Type.RBRACK, pre.getLine()));
+                ErrorTable.add(new Error(Error.Type.LACK_RIGHT_BRACKET, pre.getLine()));
             }
+            idx.setRBTk(now);
+            funcFParam.addIndex(idx);
+            peek();
         }
         return funcFParam;
     }
@@ -331,6 +360,8 @@ public class Parser {
 
     /*
     MainFuncDef -> 'int' 'main' '(' ')' Block
+    ----------------------------------------------
+    Error: j
      */
     public MainFuncDef parseMainFuncDef() {
         peek();
@@ -344,8 +375,9 @@ public class Parser {
         peek();
         if (getType(now) == Type.RPARENT) mainfuncDef.setRPTK(now);
         else {
-            System.out.println("parseMainFuncDef error!");
-            System.exit(-1);
+            insert(new Token(Type.RPARENT, pre.getLine()));
+            mainfuncDef.setRPTK(now);
+            ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
         }
         peek();
         mainfuncDef.setBlock(parseBlock());
@@ -426,6 +458,8 @@ public class Parser {
      ---------------------------------------------------------------------------
       LVal : Ident {'[' Exp ']'}
       Exp: LVal | "(" Exp ")" | IntConst | Ident "(" ... | "+" | "-" | "!"
+      ---------------------------------------------------------------------------
+      Error: i
      */
     public SimpleStmt parseSimpleStmt() {
         SimpleStmt simpleStmt = null;
@@ -458,14 +492,21 @@ public class Parser {
             else simpleStmt = new SimpleStmt(now);
             peek();
         } else {
-            System.out.println("parseSimpleStmt error!");
-            System.exit(-1);
+            // i
+            insert(new Token(Type.SEMICN, pre.getLine()));
+            assert simpleStmt != null;
+            simpleStmt.setSemicolonTk(now);
+            ErrorTable.add(new Error(Error.Type.LACK_SEMICOLON, pre.getLine()));
+            peek();
+            // deBug();
         }
         return simpleStmt;
     }
 
     /*
     <IfStmt> -> 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
+    -------------------------------------------------------
+    Error: j
      */
     public IfStmt parseIfStmt() {
         IfStmt ifStmt = new IfStmt(now);
@@ -474,8 +515,8 @@ public class Parser {
         peek();
         ifStmt.setCond(parseCond());
         if (getType(now) != Type.RPARENT) {
-            System.out.println("parseIfStmt error!");
-            System.exit(-1);
+            insert(new Token(Type.RPARENT, pre.getLine()));
+            ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
         }
         ifStmt.setRPTK(now);
         peek();
@@ -490,6 +531,8 @@ public class Parser {
 
     /*
     <WhileStmt> -> 'while' '(' Cond ')' Stmt
+    ----------------------------------------
+    Error: j
      */
     public WhileStmt parseWhileStmt() {
         WhileStmt whileStmt = new WhileStmt(now);
@@ -498,8 +541,8 @@ public class Parser {
         peek();
         whileStmt.setCond(parseCond());
         if (getType(now) != Type.RPARENT) {
-            System.out.println("parseWhileStmt error!");
-            System.exit(-1);
+            insert(new Token(Type.RPARENT, pre.getLine()));
+            ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
         }
         whileStmt.setRPTK(now);
         peek();
@@ -536,16 +579,21 @@ public class Parser {
 
     /*
     <ReturnStmt> -> 'return' [Exp]
+    -------------------------------------
+    Exp: Ident ... | "(" ... | IntConst | "+" | "-" | "!"
      */
     public ReturnStmt parseReturnStmt() {
         ReturnStmt returnStmt = new ReturnStmt(now);
         peek();
-        if (getType(now) != Type.SEMICN) returnStmt.setExp(parseExp());
+        if (getType(now) == Type.IDENFR || getType(now) == Type.LPARENT || getType(now) == Type.INTCON
+        || getType(now) == Type.PLUS || getType(now) == Type.MINU || getType(now) == Type.NOT) returnStmt.setExp(parseExp());
         return returnStmt;
     }
 
     /*
     <InputStmt> -> <LVal> '=' 'getint' '(' ')'
+    ---------------------------------------------
+    Error: j
      */
     public InputStmt parseInputStmt() {
         InputStmt inputStmt = new InputStmt(parseLVal());
@@ -556,8 +604,8 @@ public class Parser {
         inputStmt.setLPTK(now);
         peek();
         if (getType(now) != Type.RPARENT) {
-            System.out.println("parseInputStmt error!");
-            System.exit(-1);
+            insert(new Token(Type.RPARENT, pre.getLine()));
+            ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
         }
         inputStmt.setRPTK(now);
         peek();
@@ -566,6 +614,8 @@ public class Parser {
 
     /*
     <OutputStmt> ->  'printf''('FormatString{','Exp}')'
+    ---------------------------------------------------
+    Error: j
      */
     public OutputStmt parseOutputStmt() {
         OutputStmt outputStmt = new OutputStmt(now);
@@ -574,14 +624,14 @@ public class Parser {
         peek();
         outputStmt.setSTK(now);
         peek();
-        while (getType(now) != Type.RPARENT) {
+        while (getType(now) == Type.COMMA) {
             outputStmt.addComma(now);
             peek();
             outputStmt.addExp(parseExp());
-            if (getType(now) != Type.COMMA && getType(now) != Type.RPARENT) {
-                System.out.println("parseOutStmt error!");
-                System.exit(-1);
-            }
+        }
+        if (getType(now) != Type.RPARENT) {
+            insert(new Token(Type.RPARENT, pre.getLine()));
+            ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
         }
         outputStmt.setRPTK(now);
         peek();
@@ -607,6 +657,7 @@ public class Parser {
     /*
     LVal -> Ident {'[' Exp ']'}
     ----------------------------
+    Error: k
      */
     public LVal parseLVal() {
         LVal lVal = new LVal(now);
@@ -615,14 +666,13 @@ public class Parser {
             Index index = new Index(now);
             peek();
             index.setExp(parseExp());
-            if (getType(now) == Type.RBRACK) {
-                index.setRBTk(now);
-                lVal.addIndex(index);
-                peek();
-            } else {
-                System.out.println("parseLVal error!");
-                System.exit(-1);
+            if (getType(now) != Type.RBRACK) {
+                insert(new Token(Type.RBRACK, pre.getLine()));
+                ErrorTable.add(new Error(Error.Type.LACK_RIGHT_BRACKET, pre.getLine()));
             }
+            index.setRBTk(now);
+            lVal.addIndex(index);
+            peek();
         }
         return lVal;
     }
@@ -653,6 +703,7 @@ public class Parser {
             peek();
             return new PrimaryExp(new Number(pre));
         } else {
+            //deBug();
             System.out.println("parsePrimaryExp error!");
             System.exit(-1);
         }
@@ -664,6 +715,9 @@ public class Parser {
     -----------------------------------------------------------------------
     PrimaryExp: Ident (null | "[" ...) | "(" ... | IntConst
     UnaryOp: "+" | "-" | "!"
+    FuncRParams: Ident ... | "(" ... | IntConst | "+" | "-" | "!"
+    ---------------------------------------------------------------------
+    Error: j
      */
     public UnaryExp parseUnaryExp() {
         UnaryExp unaryExp;
@@ -677,20 +731,22 @@ public class Parser {
             peek();
             unaryExp.setLPTk(now);
             peek();
-            if (getType(now) != Type.RPARENT) unaryExp.setFuncRParams(parseFuncRParams());
+            if (getType(now) == Type.IDENFR || getType(now) == Type.LPARENT || getType(now) == Type.INTCON
+                    || getType(now) == Type.PLUS || getType(now) == Type.MINU || getType(now) == Type.NOT)
+                unaryExp.setFuncRParams(parseFuncRParams());
             if (getType(now) == Type.RPARENT) {
                 unaryExp.setRPTk(now);
-                peek();
-                return unaryExp;
             } else {
-                System.out.println("parseUnaryExp error!");
-                System.exit(-1);
+                insert(new Token(Type.RPARENT, pre.getLine()));
+                unaryExp.setRPTk(now);
+                ErrorTable.add(new Error(Error.Type.LACK_RIGHT_PARENT, pre.getLine()));
             }
+            peek();
+            return unaryExp;
         } else {
             unaryExp = new UnaryExp(parsePrimaryExp());
             return unaryExp;
         }
-        return null;
     }
 
     /*

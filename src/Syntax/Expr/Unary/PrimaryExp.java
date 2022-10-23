@@ -38,4 +38,18 @@ public class PrimaryExp {
         if (number != null) return number + "\n" + "<PrimaryExp>";
         return lPTk + "\n" + exp + "\n" + rpTk + "\n" + "<PrimaryExp>";
     }
+
+    public LVal getLval() {
+        return lval;
+    }
+
+    public Exp getExp() {
+        return exp;
+    }
+
+    public int getFormDim() {
+        if (lval != null) return lval.getFormDim();
+        else if (number != null) return 0;
+        else return exp.getFormDim();
+    }
 }

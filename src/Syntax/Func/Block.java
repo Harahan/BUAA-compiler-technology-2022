@@ -31,6 +31,14 @@ public class Block {
         return sb + "<Block>";
     }
 
+    public ArrayList<BlockItem> getBlockItems() {
+        return blockItems;
+    }
+
+    public Token getrBTK() {
+        return rBTK;
+    }
+
     public static class BlockItem {
         private final Decl decl;
         private final Stmt stmt;
@@ -43,6 +51,14 @@ public class Block {
         public BlockItem(Stmt stmt) {
             this.stmt = stmt;
             decl = null;
+        }
+
+        public Stmt getStmt() {
+            return stmt;
+        }
+
+        public Decl getDecl() {
+            return decl;
         }
 
         @Override

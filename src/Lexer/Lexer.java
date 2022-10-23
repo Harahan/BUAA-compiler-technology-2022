@@ -2,6 +2,8 @@ package Lexer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import Error.ErrorTable;
+import Error.Error;
 
 public class Lexer {
     private final String input;
@@ -71,6 +73,7 @@ public class Lexer {
         tokens.add(new Token(type != null ? type : Type.IDENFR, line, s));
     }
 
+    // Error: a
     private void addFormatString() {
         // right quotation exist
         int line = curLine;
@@ -83,6 +86,16 @@ public class Lexer {
         ch = getchar();
         sb.append("\"");
         String s = sb.toString();
+        for (int i = 1; i < s.length() - 1; ++i) {
+            int c = s.charAt(i);
+            boolean x = (c == 32 || c == 33 || (40 <= c && c <= 126 && c != 92));
+            boolean y = (c == 92 && i + 1 < s.length() - 1 && s.charAt(i + 1) == 'n');
+            boolean z = (s.charAt(i) == '%' && i + 1 < s.length() - 1 && s.charAt(i + 1) == 'd');
+            if (!x && !y && !z) {
+                ErrorTable.add(new Error(Error.Type.ILLEGAL_CHAR, line));
+                break;
+            }
+        }
         tokens.add(new Token(Type.STRCON, line, s));
     }
 

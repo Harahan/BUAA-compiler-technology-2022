@@ -40,6 +40,22 @@ public class IfStmt {
         this.elseTK = elseTK;
     }
 
+    public Cond getCond() {
+        return cond;
+    }
+
+    public boolean hasElse() {
+        return elseStmt != null;
+    }
+
+    public Stmt getIfStmt() {
+        return ifStmt;
+    }
+
+    public Stmt getElseStmt() {
+        return elseStmt;
+    }
+
     @Override
     public String toString() {
         return ifTK + "\n" + lPTK + "\n" + cond + "\n" + rPTK + "\n" + ifStmt +

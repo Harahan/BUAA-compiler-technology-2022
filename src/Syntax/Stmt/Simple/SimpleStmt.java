@@ -19,6 +19,10 @@ public class SimpleStmt {
         this.semicolonTk = semicolonTk;
     }
 
+    public Simple getSpl() {
+        return spl;
+    }
+
     @Override
     public String toString() {
         return (spl != null ? spl + "\n" : "") + semicolonTk;

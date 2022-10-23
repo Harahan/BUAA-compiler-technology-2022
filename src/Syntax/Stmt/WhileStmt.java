@@ -34,4 +34,12 @@ public class WhileStmt {
     public String toString() {
         return whileTK + "\n" + lPTK + "\n" + cond + "\n" + rPTK + "\n" + stmt;
     }
+
+    public Stmt getStmt() {
+        return stmt;
+    }
+
+    public Cond getCond() {
+        return cond;
+    }
 }

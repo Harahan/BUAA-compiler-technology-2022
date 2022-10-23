@@ -15,6 +15,14 @@ public class ReturnStmt implements Simple {
         this.exp = exp;
     }
 
+    public Exp getExp() {
+        return exp;
+    }
+
+    public Token getRetTK() {
+        return retTK;
+    }
+
     @Override
     public String toString() {
         return retTK + ((exp != null) ? "\n" + exp : "");

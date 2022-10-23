@@ -9,6 +9,10 @@ public class Number {
         this.intConstTk = intConstTk;
     }
 
+    public int val() {
+        return intConstTk.getIntVal();
+    }
+
     @Override
     public String toString() {
         return intConstTk + "\n" + "<Number>";

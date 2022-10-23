@@ -34,4 +34,8 @@ public class InputStmt implements Simple {
     public String toString() {
         return lVal + "\n" + assignTK + "\n" + getintTK + "\n" + lPTK + "\n" + rPTK;
     }
+
+    public LVal getLVal() {
+        return lVal;
+    }
 }

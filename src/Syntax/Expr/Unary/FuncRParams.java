@@ -24,6 +24,14 @@ public class FuncRParams {
         commas.add(commaTk);
     }
 
+    public Exp getFirst() {
+        return first;
+    }
+
+    public ArrayList<Exp> getExps() {
+        return exps;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(first + "\n");
@@ -31,5 +39,9 @@ public class FuncRParams {
             sb.append(commas.get(i)).append("\n").append(exps.get(i)).append("\n");
         }
         return sb + "<FuncRParams>";
+    }
+
+    public int getNum() {
+        return 1 + exps.size();
     }
 }

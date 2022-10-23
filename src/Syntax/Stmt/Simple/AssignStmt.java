@@ -21,6 +21,14 @@ public class AssignStmt implements Simple {
         this.exp = exp;
     }
 
+    public Exp getExp() {
+        return exp;
+    }
+
+    public LVal getlVal() {
+        return lVal;
+    }
+
     @Override
     public String toString() {
         return lVal + "\n" + assignTK + "\n" + exp;

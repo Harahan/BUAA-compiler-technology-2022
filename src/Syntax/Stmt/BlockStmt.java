@@ -9,6 +9,10 @@ public class BlockStmt {
         this.block = block;
     }
 
+    public Block getBlock() {
+        return block;
+    }
+
     @Override
     public String toString() {
         return block.toString();

@@ -12,6 +12,15 @@ public class InitExp implements InitVal {
     }
 
     @Override
+    public boolean isConst() {
+        return isConst;
+    }
+
+    public Exp getExp() {
+        return exp;
+    }
+
+    @Override
     public String toString() {
         return exp + "\n" + (isConst ? "<ConstInitVal>" : "<InitVal>");
     }

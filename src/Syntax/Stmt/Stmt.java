@@ -32,4 +32,20 @@ public class Stmt {
                 ifStmt != null ? ifStmt :
                         blockStmt != null ? blockStmt : whileStmt) + "\n" + "<Stmt>";
     }
+
+    public BlockStmt getBlockStmt() {
+        return blockStmt;
+    }
+
+    public IfStmt getIfStmt() {
+        return ifStmt;
+    }
+
+    public WhileStmt getWhileStmt() {
+        return whileStmt;
+    }
+
+    public SimpleStmt getSpl() {
+        return spl;
+    }
 }

@@ -31,4 +31,16 @@ public class CompUnit {
         sb.append(mainFuncDef).append("\n");
         return sb + "<CompUnit>";
     }
+
+    public ArrayList<Decl> getDecls() {
+        return decls;
+    }
+
+    public ArrayList<FuncDef> getFuncDefs() {
+        return funcDefs;
+    }
+
+    public MainFuncDef getMainFuncDef() {
+        return mainFuncDef;
+    }
 }

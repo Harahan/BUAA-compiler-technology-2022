@@ -41,4 +41,17 @@ public class InitArr implements InitVal {
         sb.append(rBTK).append("\n");
         return sb + (isConst ? "<ConstInitVal>" : "<InitVal>");
     }
+
+    public InitVal getFirst() {
+        return first;
+    }
+
+    public ArrayList<InitVal> getVars() {
+        return vars;
+    }
+
+    @Override
+    public boolean isConst() {
+        return isConst;
+    }
 }

@@ -38,4 +38,32 @@ public class FuncDef {
         sb.append(rPTK).append("\n").append(block).append("\n");
         return sb + "<FuncDef>";
     }
+
+    public Token getIdentTk() {
+        return ident;
+    }
+
+    public boolean hasParams() {
+        return funcFParams != null;
+    }
+
+    public FuncFParams getFuncFParams() {
+        return funcFParams;
+    }
+
+    public Block getBlock() {
+        return block;
+    }
+
+    public Token getFuncType() {
+        return funcType;
+    }
+
+    public int getParamNum() {
+        return funcFParams == null ? 0 : funcFParams.getNum();
+    }
+
+    public Block.BlockItem getLastBlockItem() {
+        return block.getBlockItems().size() - 1 >= 0 ? block.getBlockItems().get(block.getBlockItems().size() - 1) : null;
+    }
 }

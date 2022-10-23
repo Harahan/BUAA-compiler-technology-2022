@@ -31,4 +31,16 @@ public class FuncFParams {
         }
         return sb + "<FuncFParams>";
     }
+
+    public FuncFParam getFirst() {
+        return first;
+    }
+
+    public ArrayList<FuncFParam> getFuncFParams() {
+        return funcFParams;
+    }
+
+    public int getNum() {
+        return 1 + funcFParams.size();
+    }
 }

@@ -47,4 +47,16 @@ public class OutputStmt implements Simple {
         }
         return sb + rPTK.toString();
     }
+
+    public ArrayList<Exp> getExps() {
+        return exps;
+    }
+
+    public Token getPrintTK() {
+        return printTK;
+    }
+
+    public Token getsTK() {
+        return sTK;
+    }
 }

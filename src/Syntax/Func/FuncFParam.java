@@ -28,4 +28,20 @@ public class FuncFParam {
         }
         return sb + "<FuncFParam>";
     }
+
+    public Token getIdent() {
+        return ident;
+    }
+
+    public boolean isArr() {
+        return indexes.size() != 0;
+    }
+
+    public int getDim() {
+        return indexes.size();
+    }
+
+    public ArrayList<Index> getIndexes() {
+        return indexes;
+    }
 }

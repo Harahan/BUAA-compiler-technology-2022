@@ -9,6 +9,10 @@ public class LoopStmt implements Simple {
         this.contrTK = contrTK;
     }
 
+    public Token getContrTK() {
+        return contrTK;
+    }
+
     @Override
     public String toString() {
         return contrTK.toString();

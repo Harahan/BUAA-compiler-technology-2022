@@ -7,6 +7,14 @@ public class Exp {
         this.addExp = addExp;
     }
 
+    public AddExp getAddExp() {
+        return addExp;
+    }
+
+    public int getFormDim() {
+        return addExp.getFormDim();
+    }
+
     @Override
     public String toString() {
         return addExp + "\n" + "<Exp>";

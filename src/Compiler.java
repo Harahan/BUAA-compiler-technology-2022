@@ -1,9 +1,11 @@
 import Lexer.Lexer;
+import Middle.Visitor;
 import Syntax.Parser;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import Error.ErrorTable;
 
 public class Compiler {
     private static String read(String path) {
@@ -30,6 +32,11 @@ public class Compiler {
         String source = read("testfile.txt");
         Lexer lexer = new Lexer(source);
         Parser parser = new Parser(lexer.getTokens());
-        write(parser.toString(), "output.txt");
+        new Visitor(parser.getCompUnit());
+        if (ErrorTable.isEmpty()) {
+            write(parser.toString(), "output.txt");
+        } else {
+            write(ErrorTable.printError(), "error.txt");
+        }
     }
 }
