@@ -341,6 +341,10 @@ public class Visitor {
         }
     }
 
+    /*
+    ---------------------------------------------------------------
+    Error: d, e
+     */
     private void funcRParamsTravel(FuncRParams funcRParams, Token ident , String name) {
         assert curTable.get(name, true) != null && curTable.get(name, true) instanceof Func;
         Func func = (Func) curTable.get(name, true);
