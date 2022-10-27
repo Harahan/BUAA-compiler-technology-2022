@@ -1,4 +1,6 @@
 import Lexer.Lexer;
+import Middle.MidCodeList;
+import Middle.Util.Code;
 import Middle.Visitor;
 import Syntax.Parser;
 
@@ -37,6 +39,8 @@ public class Compiler {
             write(parser.toString(), "output.txt");
         } else {
             write(ErrorTable.printError(), "error.txt");
+            return;
         }
+        write(MidCodeList.printMidCode(), "midCode.txt");
     }
 }

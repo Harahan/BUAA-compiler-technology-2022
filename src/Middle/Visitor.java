@@ -3,6 +3,8 @@ package Middle;
 import Error.Error;
 import Lexer.Token;
 import Lexer.Type;
+import Middle.Util.Calc;
+import Middle.Util.Code;
 import Symbol.*;
 import Syntax.CompUnit;
 import Syntax.Decl.Decl;
@@ -27,6 +29,7 @@ import Syntax.Stmt.WhileStmt;
 import Syntax.Util.Index;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class Visitor {
@@ -34,14 +37,18 @@ public class Visitor {
     private int cycLevel = 0;
     public static SymbolTable curTable;
     private Func curFunc = null;
-    private int magic = 1; // 用以生成错误的函数的新名字（(error)magic）加入符号表，否则无法检查重名函数的内部
+    private int magic = 1; // 用以生成错误的函数的新名字加入符号表，否则无法检查重名函数的内部
+
+    public static SymbolTable global;
+    public static HashMap<String, Symbol> str2Symbol = new HashMap<>();
 
     public Visitor(CompUnit compUnit) {
         compUnitTravel(compUnit);
     }
 
     private void compUnitTravel(CompUnit compUnit) {
-        curTable = new SymbolTable(null);
+        curTable = new SymbolTable(null, blockLevel, 1);
+        global = curTable;
         for (Decl decl : compUnit.getDecls()) declTravel(decl);
         for (FuncDef funcDef : compUnit.getFuncDefs()) funcTravel(funcDef);
         funcTravel(compUnit.getMainFuncDef());
@@ -62,6 +69,7 @@ public class Visitor {
     /*
     -------------------------------
     Error : b
+    TODO: 注意全局变量默认初始化为0，当前在这步并没有处理
      */
     private void defTravel(Def def) {
         Token ident = def.getIdentTk();
@@ -73,60 +81,115 @@ public class Visitor {
             ErrorTable.add(new Error(Error.Type.DUPLICATE_IDENT, ident.getLine()));
             return;
         }
+        String nickname;
+        Val val;
+        String x;
         if (!def.isArr()) {
             if (!def.isInit()) {
                 // 非数组且无初始化
-                curTable.add(new Val(name, isConst, null, 0, null, blockLevel));
+                val = new Val(name, isConst, 0, null, curTable);
+                curTable.add(val);
+                nickname = val.getNickname();
+                MidCodeList.add(Code.Op.DEF_VAL, "(EMPTY)", "(EMPTY)", nickname);
+                val.addInitVal(null);
             } else {
                 // 非数组且初始化
-                curTable.add(new Val(name, isConst, def.getInitVal(), 0, null, blockLevel));
-                initValTravel(def.getInitVal());
+                x = expTravel(((InitExp)def.getInitVal()).getExp());
+                val = new Val(name, isConst, 0, null, curTable);
+                curTable.add(val);
+                nickname = val.getNickname();
+                MidCodeList.add(Code.Op.DEF_VAL, x, "(EMPTY)", nickname);
+                try {
+                    val.addInitVal(Integer.valueOf(x));
+                } catch (Exception ignore) {
+                    val.addInitVal(null);
+                }
             }
         } else {
 
             // ConstExp
+            // 计算 dims
+            ArrayList<Integer> dims = new ArrayList<>();
             for (Index index : def.getIndexes()) {
                 Exp exp = index.getExp();
-                constExpTravel((ConstExp) exp);
+                try {
+                    dims.add(Integer.valueOf(expTravel(exp)));
+                } catch (Exception ignore) {}
             }
 
             if (!def.isInit()) {
                 // 数组且非初始化
-                curTable.add(new Val(name, isConst, null, def.getDim(), def.getIndexes(), blockLevel));
+                val = new Val(name, isConst, def.getDim(), dims, curTable);
+                curTable.add(val);
+                nickname = val.getNickname();
+                MidCodeList.add(Code.Op.DEF_ARR, "(EMPTY)", "(EMPTY)", nickname);
+                if (dims.size() == 2) {
+                    for (int i = 0; i < dims.get(0); ++i) {
+                        for (int j = 0; j < dims.get(1); ++j) val.addInitVal(null);
+                    }
+                }
             } else {
                 // 数组且初始化
-                curTable.add(new Val(name, isConst, def.getInitVal(), def.getDim(), def.getIndexes(), blockLevel));
-                initValTravel(def.getInitVal());
+                val = new Val(name, isConst, def.getDim(), dims, curTable);
+                curTable.add(val);
+                nickname = val.getNickname();
+                MidCodeList.add(Code.Op.DEF_ARR, "(EMPTY)", "(EMPTY)", nickname);
+                int dim = def.getDim();
+                ArrayList<InitVal> vars = ((InitArr) def.getInitVal()).getVars();
+                if (dim == 2) {
+                    // 2维
+                    assert vars.size() == dims.get(0);
+                    for (int i = 0; i < dims.get(0); ++i) {
+                        ArrayList<InitVal> o = ((InitArr) vars.get(i)).getVars();
+
+                        if (o.isEmpty()) { // {{} ...}
+                            for (int j = 0; j < dims.get(1); ++j) {
+                                val.addInitVal(0);
+                                MidCodeList.add(Code.Op.ASSIGN, "0", "(EMPTY)", nickname + "[" + (i * dims.get(1) + j) + "]");
+                            }
+                        } else { // {{2, 2} ...}
+                            assert o.size() == dims.get(1);
+                            for (int j = 0; j < dims.get(1); ++j) {
+                                x = expTravel(((InitExp) o.get(j)).getExp());
+                                try {
+                                    val.addInitVal(Integer.valueOf(x));
+                                } catch (Exception ignore) {
+                                    val.addInitVal(null);
+                                }
+                                MidCodeList.add(Code.Op.ASSIGN, x, "(EMPTY)", nickname + "[" + (i * dims.get(1) + j) + "]");
+                            }
+                        }
+                    }
+                } else {
+                    // 1维
+                    if (vars.isEmpty()) {
+                        for (int i = 0; i < dims.get(0); ++i) {
+                            val.addInitVal(0);
+                            MidCodeList.add(Code.Op.ASSIGN, "0", "(EMPTY)", nickname + "[" + i + "]");
+                        }
+                    } else {
+                        assert vars.size() == dims.size();
+                        for (int i = 0; i < dims.get(0); ++i) {
+                            x = expTravel(((InitExp) vars.get(i)).getExp());
+                            try {
+                                val.addInitVal(Integer.valueOf(x));
+                            } catch (Exception ignore) {
+                                val.addInitVal(null);
+                            }
+                            MidCodeList.add(Code.Op.ASSIGN, x, "(EMPTY)", nickname + "[" + i + "]");
+                        }
+                    }
+                }
             }
         }
     }
-
-    private void initValTravel(InitVal initVal) {
-        if (initVal instanceof InitArr) {
-
-           InitVal v = ((InitArr) initVal).getFirst();
-           initValTravel(v);
-           for (InitVal var : ((InitArr) initVal).getVars()) {
-               initValTravel(var);
-           }
-
-        } else if (initVal instanceof InitExp) {
-
-            if (initVal.isConst()) {
-                constExpTravel((ConstExp) ((InitExp) initVal).getExp());
-            } else {
-                expTravel(((InitExp) initVal).getExp());
-            }
-
-        }
-    }
-
 
     // ------------------- FUNC ---------------------------------
 
     /*
     -------------------------------
     Error : b, g
+    TODO
      */
     private void funcTravel(FuncDef funcDef) {
         Token ident = funcDef.getIdentTk();
@@ -137,15 +200,18 @@ public class Visitor {
         // 故不能直接return
         if (curTable.contains(name, false)) {
             ErrorTable.add(new Error(Error.Type.DUPLICATE_IDENT, ident.getLine()));
-            name += "(error" + ++magic + ")";
+            name += "(ERROR_FUNC_" + ++magic + ")";
         }
 
         // 处理符号表
-        curTable = new SymbolTable(curTable);
-        Func func = new Func(name, funcDef.getFuncType().getType() == Type.VOIDTK ? Func.Type.voidFunc : Func.Type.intFunc, funcDef.getParamNum(), ++blockLevel, curTable);
-        curTable.getFa().add(func);
-        curFunc = func;
         ++blockLevel;
+        curTable = new SymbolTable(curTable, blockLevel, curTable.getSons().size() + 1); // 已经更新
+        Func func = new Func(name, funcDef.getFuncType().getType() == Type.VOIDTK ? Func.Type.voidFunc : Func.Type.intFunc, funcDef.getParamNum(), curTable, curTable.getFa());
+        curTable.getFa().add(func);
+        curTable.getFa().add(curTable);
+        curFunc = func;
+        // System.out.println(curFunc);
+        MidCodeList.add(Code.Op.FUNC, curFunc.getNickname(), "(EMPTY)", "(EMPTY)");
 
         // 检查形参
         if (funcDef.hasParams()) {
@@ -167,7 +233,9 @@ public class Visitor {
             ErrorTable.add(new Error(Error.Type.LACK_RETURN_VALUE, funcDef.getBlock().getrBTK().getLine()));
 
         // 回撤
+        MidCodeList.add(Code.Op.FUNC_END, curFunc.getNickname(), "(EMPTY)", "(EMPTY)");
         back();
+        curFunc = null;
     }
 
     /*
@@ -188,24 +256,30 @@ public class Visitor {
         if (funcFParam.isArr()) {
 
             // 第一维都不存在
+            ArrayList<Integer> arr = new ArrayList<Integer>() {{add(-1);}};
             for (Index index : funcFParam.getIndexes()) {
                 Exp exp = index.getExp();
-                if (exp != null) constExpTravel((ConstExp) exp);
+                if (exp != null) {
+                    try {
+                        arr.add(Integer.valueOf(expTravel(exp)));
+                    } catch (Exception ignore) {}
+                }
             }
 
-            param = new FuncFormParam(name, funcFParam.getDim(), funcFParam.getIndexes(), blockLevel);
+            param = new FuncFormParam(name, funcFParam.getDim(), arr, curTable);
         } else {
-            param = new FuncFormParam(name, 0, null, blockLevel);
+            param = new FuncFormParam(name, 0, null, curTable);
         }
         curTable.add(param);
     }
 
     private void blockTravel(Block block, boolean isFunc) {
        ArrayList<Block.BlockItem> blockItems = block.getBlockItems();
-
        if (!isFunc) {
            ++blockLevel;
-           curTable = new SymbolTable(curTable);
+           curTable = new SymbolTable(curTable, blockLevel, curTable.getSons().size() + 1);
+           curTable.getFa().add(curTable);
+           MidCodeList.add(Code.Op.BLOCK_BEGIN, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
        }
 
        for (Block.BlockItem blockItem : blockItems) {
@@ -213,7 +287,10 @@ public class Visitor {
            else stmtTravel(blockItem.getStmt());
        }
 
-       if (!isFunc) back();
+       if (!isFunc) {
+           MidCodeList.add(Code.Op.BLOCK_END, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
+           back();
+       }
     }
 
     // ------------------------------ STMT -------------------------
@@ -266,9 +343,9 @@ public class Visitor {
         String name = ident.getStrVal();
         if (curTable.contains(name, true) && curTable.get(name, true).isConst()) {
             ErrorTable.add(new Error(Error.Type.CHANGE_CONST_VALUE, ident.getLine()));
+            return;
         }
-
-        lValTravel(inputStmt.getLVal());
+        MidCodeList.add(Code.Op.GET_INT, "(EMPTY)", "(EMPTY)", lValTravel(inputStmt.getLVal()));
     }
 
     /*
@@ -281,14 +358,16 @@ public class Visitor {
         String name = ident.getStrVal();
         if (curTable.contains(name, true) && curTable.get(name, true).isConst()) {
             ErrorTable.add(new Error(Error.Type.CHANGE_CONST_VALUE, ident.getLine()));
+            return;
         }
 
-        lValTravel(assignStmt.getlVal());
-        expTravel(assignStmt.getExp());
+        String nickname = lValTravel(assignStmt.getlVal());
+        String var = expTravel(assignStmt.getExp());
+        MidCodeList.add(Code.Op.ASSIGN, var, "(EMPTY)", nickname);
     }
 
-    private void expStmtTravel(ExpStmt expStmt) {
-        expTravel(expStmt.getExp());
+    private String expStmtTravel(ExpStmt expStmt) {
+        return expTravel(expStmt.getExp());
     }
 
     /*
@@ -306,16 +385,31 @@ public class Visitor {
      */
     private void outputStmtTravel(OutputStmt outputStmt) {
         ArrayList<Exp> exps = outputStmt.getExps();
-        for (Exp exp : exps) expTravel(exp);
 
         String fs = outputStmt.getsTK().getStrVal();
+        fs = fs.substring(1, fs.length() - 1);
         int cnt = 0;
         for (int i = 0; i < fs.length(); ++i) {
             if (fs.charAt(i) == '%' && i + 1 < fs.length() && fs.charAt(i + 1) == 'd') ++cnt;
         }
 
         // l
-        if (cnt != exps.size()) ErrorTable.add(new Error(Error.Type.MISMATCH_PRINT_FORMAT_CHAR, outputStmt.getPrintTK().getLine()));
+        if (cnt != exps.size()) {
+            ErrorTable.add(new Error(Error.Type.MISMATCH_PRINT_FORMAT_CHAR, outputStmt.getPrintTK().getLine()));
+            return;
+        }
+
+        int j = 0;
+        StringBuilder p = new StringBuilder();
+        for (int i = 0; i < fs.length(); ++i) {
+            if (fs.charAt(i) == '%' && i + 1 < fs.length() && fs.charAt(i + 1) == 'd') {
+                if (p.length() != 0) MidCodeList.add(Code.Op.PRINT_STR, p.toString(), "(EMPTY)", "(EMPTY)");
+                p = new StringBuilder();
+                MidCodeList.add(Code.Op.PRINT_INT, expTravel(exps.get(j++)), "(EMPTY)", "(EMPTY)");
+                ++i;
+            } else p.append(fs.charAt(i));
+        }
+        if (p.length() != 0) MidCodeList.add(Code.Op.PRINT_STR, p.toString(), "(EMPTY)", "(EMPTY)");
     }
 
     /*
@@ -328,7 +422,9 @@ public class Visitor {
             ErrorTable.add(new Error(Error.Type.SPARE_RETURN_VALUE, returnStmt.getRetTK().getLine()));
             return;
         }
-       if (returnStmt.getExp() != null) expTravel(returnStmt.getExp());
+        String x = null;
+       if (returnStmt.getExp() != null) x = expTravel(returnStmt.getExp());
+       MidCodeList.add(Code.Op.RETURN,  x != null ? x : "(EMPTY)", "(EMPTY)", "(EMPTY)");
     }
 
     // -------------------------- EXP ----------------------------
@@ -357,10 +453,10 @@ public class Visitor {
             }
 
             Exp first = funcRParams.getFirst();
-            expTravel(first);
+            String param = expTravel(first);
 
             // e
-            List<Symbol> symbols = func.getSymbolTable().getOtherSymbols().subList(0, func.getNum());
+            List<Symbol> symbols = func.getFuncTable().getOrderSymbols().subList(0, func.getNum()); // 形参
             int dim = first.getFormDim();
             if (dim != -10000 && dim != symbols.get(0).getDim()) {
                 ErrorTable.add(new Error(Error.Type.MISMATCH_PARAM_TYPE, ident.getLine()));
@@ -368,10 +464,12 @@ public class Visitor {
             } else if (dim == -10000) {
                 return;
             }
+            MidCodeList.add(symbols.get(0).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
+
 
             for (int i = 0; i < funcRParams.getExps().size(); ++i) {
                 Exp exp = funcRParams.getExps().get(i);
-                expTravel(exp);
+                param = expTravel(exp);
 
                 // e
                 dim = exp.getFormDim();
@@ -381,6 +479,7 @@ public class Visitor {
                 } else if (dim == -10000) {
                     return;
                 }
+                MidCodeList.add(symbols.get(i + 1).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
             }
 
         } else {
@@ -392,16 +491,17 @@ public class Visitor {
         }
     }
 
-    private void primaryExpTravel(PrimaryExp primaryExp) {
+    private String primaryExpTravel(PrimaryExp primaryExp) {
         LVal lVal = primaryExp.getLval();
         Exp exp = primaryExp.getExp();
 
         if (exp != null) {
-            expTravel(exp);
+            return expTravel(exp);
         } else if (lVal != null) {
-            lValTravel(lVal);
+            return lValTravel(lVal);
         }
         // number
+        return Integer.toString(primaryExp.getNumber().val());
     }
 
     /*
@@ -409,15 +509,18 @@ public class Visitor {
     -------------------------------------
     Error: c, d, e
      */
-    private void unaryExpTravel(UnaryExp unaryExp) {
+    private String unaryExpTravel(UnaryExp unaryExp) {
         PrimaryExp primaryExp = unaryExp.getPrimaryExp();
         UnaryExp innerUnaryExp = unaryExp.getUnaryExp();
         Token ident = unaryExp.getIdentTk();
 
         if (primaryExp != null) {
-            primaryExpTravel(primaryExp);
+            return primaryExpTravel(primaryExp);
         } else if (innerUnaryExp != null) {
-            unaryExpTravel(innerUnaryExp);
+            String ord = unaryExpTravel(innerUnaryExp);
+            Token op = unaryExp.getUnaryOp();
+            if (op.getType() != Type.NOT) return MidCodeList.add(unaryExp.getUnaryOp().getType() == Type.MINU ? Code.Op.SUB : Code.Op.ADD, "0", ord, "(AUTO)");
+            else return MidCodeList.add(Code.Op.NOT, ord, "(EMPTY)", "(AUTO)");
         } else {
 
             // 检查函数调用
@@ -427,29 +530,42 @@ public class Visitor {
             // c
             if (!curTable.contains(name, true)) {
                 ErrorTable.add(new Error(Error.Type.UNDEFINE_IDENT, ident.getLine()));
-                return;
+                return "(ERROR)";
             }
 
+            MidCodeList.add(Code.Op.PREPARE_CALL, curTable.get(name, true).getNickname(), "(EMPTY)", "(EMPTY)");
             FuncRParams funcRParams = unaryExp.getFuncRParams();
             funcRParamsTravel(funcRParams, ident, name);
-
+            return MidCodeList.add(Code.Op.CALL, curTable.get(name, true).getNickname(), "(EMPTY)", "(EMPTY)");
         }
     }
 
-    private void mulExpTravel(MulExp mulExp) {
+    private String mulExpTravel(MulExp mulExp) {
         UnaryExp first = mulExp.getFirst();
-        unaryExpTravel(first);
-        for (UnaryExp unaryExp : mulExp.getTs()) {
-            unaryExpTravel(unaryExp);
+        String ord1 = unaryExpTravel(first);
+        String res = ord1;
+        if (mulExp.getTs().size() > 0) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
+        for (int i = 0; i < mulExp.getTs().size(); ++i) {
+            String ord2 = unaryExpTravel(mulExp.getTs().get(i));
+            Code.Op op = mulExp.getOperators().get(i).getType() == Type.MULT ? Code.Op.MUL:
+                    mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : Code.Op.MOD;
+            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
         }
+        return res;
     }
 
-    private void addExpTravel(AddExp addExp) {
+    private String addExpTravel(AddExp addExp) {
         MulExp first = addExp.getFirst();
-        mulExpTravel(first);
-        for (MulExp mulExp : addExp.getTs()) {
-            mulExpTravel(mulExp);
+        String ord1 = mulExpTravel(first);
+        String res = ord1;
+        if (addExp.getTs().size() > 0) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
+        for (int i = 0; i < addExp.getTs().size(); ++i) {
+            String ord2 = mulExpTravel(addExp.getTs().get(i));
+            Code.Op op = addExp.getOperators().get(i).getType() == Type.PLUS ? Code.Op.ADD : Code.Op.SUB;
+            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            ord1 = res;
         }
+        return res;
     }
 
     private void relExpTravel(RelExp relExp) {
@@ -480,30 +596,70 @@ public class Visitor {
         lOrExpTravel(cond.getlOrExp());
     }
 
-    private void expTravel(Exp exp) {
-        addExpTravel(exp.getAddExp());
-    }
-
-    private void constExpTravel(ConstExp constExp) {
-        addExpTravel(constExp.getAddExp());
+    private String expTravel(Exp exp) {
+        if (exp instanceof ConstExp || blockLevel == 0) { // 全局或常数
+            try {
+                return String.valueOf(Calc.calcExp(exp));
+            } catch (Exception ignore) {}
+        }
+        return addExpTravel(exp.getAddExp());
     }
 
     /*
     ------------------------------------
     Error: c
      */
-    private void lValTravel(LVal lVal) {
+    private String lValTravel(LVal lVal) {
         Token ident = lVal.getIdentTk();
         String name = ident.getStrVal();
 
         // c
         if (!curTable.contains(name, true)) {
             ErrorTable.add(new Error(Error.Type.UNDEFINE_IDENT, ident.getLine()));
+            return "(ERROR)";
         }
 
-        for (Index index : lVal.getIndexes()) {
-            Exp exp = index.getExp();
-            expTravel(exp);
+        Symbol symbol = curTable.get(name, true);
+        String nickname = symbol.getNickname();
+        ArrayList<Integer> dims = symbol instanceof Val ? ((Val) symbol).getDims() : ((FuncFormParam) symbol).getDims();
+
+        ArrayList<Index> indexes = lVal.getIndexes();
+        if (!indexes.isEmpty()) {
+            String x = expTravel(indexes.get(0).getExp());
+            // 有2维-->值
+            // a[2][3]
+            if (indexes.size() == 2) {
+                String y = expTravel(indexes.get(1).getExp());
+                String base;
+
+                try {
+                    base = String.valueOf(Integer.parseInt(x) * Integer.parseInt(dims.get(1).toString()));
+                } catch (Exception ignore) {
+                    base = MidCodeList.add(Code.Op.MUL, x, dims.get(1).toString(), "(AUTO)");
+                }
+                try {
+                    nickname += "[" + (Integer.parseInt(y) + Integer.parseInt(base)) + "]";
+                } catch (Exception ignore) {
+                    nickname += "[" + MidCodeList.add(Code.Op.ADD, y, base, "(AUTO)") + "]";
+                }
+
+            } else {
+                // 一维
+                // 形参： a[], a[][3] ---> a[2]
+                // 正常定义：a[3], a[2][3] ---> a[1]
+                if (dims.size() != indexes.size()) { // 一维数组地址
+                    try {
+                        x = String.valueOf(Integer.parseInt(x) * Integer.parseInt(dims.get(1).toString()));
+                    } catch (Exception ignore) {
+                        x = MidCodeList.add(Code.Op.MUL, x, dims.get(1).toString(), "(AUTO)");
+                    }
+                }
+                nickname += "[" + x + "]";
+            }
+        } else if (!dims.isEmpty()) { // 地址
+            nickname += "[0]";
         }
+
+        return nickname;
     }
 }

@@ -65,6 +65,10 @@ public class UnaryExp {
         return funcRParams;
     }
 
+    public Token getUnaryOp() {
+        return unaryOp;
+    }
+
     public int getFormDim() {
         if (primaryExp != null) return primaryExp.getFormDim();
         else if (unaryOp != null) return unaryExp.getFormDim();

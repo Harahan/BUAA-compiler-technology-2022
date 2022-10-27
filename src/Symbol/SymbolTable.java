@@ -5,13 +5,18 @@ import java.util.HashMap;
 
 public class SymbolTable {
     private final HashMap<String, Symbol> symbols = new HashMap<>();
-    private final ArrayList<Symbol> otherSymbols = new ArrayList<>();
+    private final ArrayList<Symbol> orderSymbols = new ArrayList<>();
     private final SymbolTable fa;
+    private final ArrayList<SymbolTable> sons = new ArrayList<>();
     private int size = 0;
+    private final int blockLevel;
+    private final int blockNum;
 
 
-    public SymbolTable(SymbolTable fa) {
+    public SymbolTable(SymbolTable fa, int blockLevel, int blockNum) {
         this.fa = fa;
+        this.blockLevel = blockLevel;
+        this.blockNum = blockNum;
     }
 
     public boolean contains(String name, boolean rec) {
@@ -28,15 +33,40 @@ public class SymbolTable {
 
     public void add(Symbol symbol) {
         symbols.put(symbol.getName(), symbol);
-        otherSymbols.add(symbol);
+        orderSymbols.add(symbol);
         size += symbol.getSize();
     }
 
-    public ArrayList<Symbol> getOtherSymbols() {
-        return otherSymbols;
+    public void add(SymbolTable symbolTable) {
+        sons.add(symbolTable);
+    }
+
+    public ArrayList<SymbolTable> getSons() {
+        return sons;
+    }
+
+    public int getBlockLevel() {
+        return blockLevel;
+    }
+
+    public int getBlockNum() {
+        return blockNum;
+    }
+
+    public ArrayList<Symbol> getOrderSymbols() {
+        return orderSymbols;
     }
 
     public SymbolTable getFa() {
         return fa;
+    }
+
+    public String getNickName() {
+        return "(" + blockLevel + "," + blockNum + ")";
+    }
+
+    @Override
+    public String toString() {
+        return  "<blockLevel, blockNum>: " + blockLevel + ", " + blockNum;
     }
 }

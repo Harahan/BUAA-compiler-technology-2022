@@ -1,6 +1,6 @@
 package Symbol;
 
-import Syntax.Util.Index;
+import Middle.Visitor;
 
 import java.util.ArrayList;
 
@@ -8,14 +8,19 @@ public class FuncFormParam implements Symbol {
     private final String name;
     private int addr;
     private final int dim;
-    private final ArrayList<Index> dims = new ArrayList<>();
-    private final int loc;
+    private final ArrayList<Integer> dims = new ArrayList<>();
+    private final int blockLevel;
+    private final int blockNum;
+    private final SymbolTable symbolTable;
 
-    public FuncFormParam(String name, int dim, ArrayList<Index> dims, int loc) {
+    public FuncFormParam(String name, int dim, ArrayList<Integer> dims, SymbolTable symbolTable) {
         this.name = name;
         this.dim = dim;
-        if (dims != null )this.dims.addAll(dims);
-        this.loc = loc;
+        if (dims != null)this.dims.addAll(dims);
+        this.blockLevel = symbolTable.getBlockLevel();
+        this.blockNum = symbolTable.getBlockNum();
+        this.symbolTable = symbolTable;
+        Visitor.str2Symbol.put(name + "(" + blockLevel + "," + blockNum + ")", this);
     }
 
     @Override
@@ -24,8 +29,23 @@ public class FuncFormParam implements Symbol {
     }
 
     @Override
-    public int getLoc() {
-        return loc;
+    public int getBlockLevel() {
+        return blockLevel;
+    }
+
+    @Override
+    public int getBlockNum() {
+        return blockNum;
+    }
+
+    @Override
+    public SymbolTable getSymbolTable() {
+        return symbolTable;
+    }
+
+    @Override
+    public String getNickname() {
+        return name + "(" + blockLevel + "," + blockNum + ")";
     }
 
     @Override
@@ -57,10 +77,9 @@ public class FuncFormParam implements Symbol {
         return dim;
     }
 
-    /*
     public ArrayList<Integer> getDims() {
         return dims;
-    }*/
+    }
 
     @Override
     public String toString() {

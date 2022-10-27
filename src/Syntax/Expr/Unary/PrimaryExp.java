@@ -47,6 +47,10 @@ public class PrimaryExp {
         return exp;
     }
 
+    public Number getNumber() {
+        return number;
+    }
+
     public int getFormDim() {
         if (lval != null) return lval.getFormDim();
         else if (number != null) return 0;

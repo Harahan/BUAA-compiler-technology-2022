@@ -1,26 +1,35 @@
 package Symbol;
 
-import Syntax.Decl.InitVal.InitVal;
-import Syntax.Util.Index;
+import Middle.Visitor;
+import Syntax.Expr.Multi.Exp;
 
 import java.util.ArrayList;
 
 public class Val implements Symbol {
     private final String name;
     private final boolean isConst;
-    private final InitVal initVal;
+    private ArrayList<Integer> initVal = new ArrayList<>();
     private int addr;
     private final int dim;
-    private final ArrayList<Index> dims = new ArrayList<>();
-    private final int loc;
+    private final ArrayList<Integer> dims = new ArrayList<>();
+    private final int blockLevel;
+    private final int blockNum;
+    private final SymbolTable symbolTable;
 
-    public Val(String name, boolean isConst, InitVal initVal, int dim, ArrayList<Index> dims, int loc) {
+    public Val(String name, boolean isConst, int dim, ArrayList<Integer> dims, SymbolTable symbolTable) {
         this.name = name;
         this.isConst = isConst;
-        this.initVal = initVal;
         this.dim = dim;
         if (dims != null ) this.dims.addAll(dims);
-        this.loc = loc;
+        this.blockLevel = symbolTable.getBlockLevel();
+        this.blockNum = symbolTable.getBlockNum();
+        this.symbolTable = symbolTable;
+        Visitor.str2Symbol.put(name + "(" + blockLevel + "," + blockNum + ")", this);
+    }
+
+    public void addInitVal(Integer initVal) {
+        this.initVal.add(initVal);
+        //System.out.println(name + ": " + this.initVal);
     }
 
     @Override
@@ -33,8 +42,13 @@ public class Val implements Symbol {
     }
 
     @Override
-    public int getLoc() {
-        return loc;
+    public int getBlockLevel() {
+        return blockLevel;
+    }
+
+    @Override
+    public int getBlockNum() {
+        return blockNum;
     }
 
     @Override
@@ -56,11 +70,9 @@ public class Val implements Symbol {
         return dim;
     }
 
-    /*
     public ArrayList<Integer> getDims() {
         return dims;
     }
-     */
 
     public Integer getAddr() {
         return addr;
@@ -69,5 +81,28 @@ public class Val implements Symbol {
     @Override
     public String toString() {
         return "val: " + name + " isConst: " + isConst + " dim: " + dim;
+    }
+
+    public int getVal(ArrayList<Integer> arr) throws Exception {
+        if (arr.size() != dim || arr.size() > 2) throw new Exception();
+
+        if (arr.size() == 0) return initVal.get(0);
+
+        int idx = (arr.size() == 1 ? arr.get(0) : (arr.get(0) * dims.get(1) + arr.get(1)));
+
+        return initVal.get(idx);
+    }
+
+    @Override
+    public SymbolTable getSymbolTable() {
+        return symbolTable;
+    }
+
+    @Override
+    public String getNickname() {
+        String x = "";
+        //if (dim == 1) x += "[" + dims.get(0) + "]";
+        //if (dim == 2) x += "[" + dims.get(0) + "," + dims.get(1) + "]";
+        return name + x + "(" + blockLevel + "," + blockNum + ")";
     }
 }

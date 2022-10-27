@@ -52,4 +52,8 @@ public class MultiExp<T> {
         }
         return  (first instanceof MultiExp<?>) ? ((MultiExp<?>) first).getFormDim() : ((UnaryExp) first).getFormDim();
     }
+
+    public ArrayList<Token> getOperators() {
+        return operators;
+    }
 }

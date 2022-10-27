@@ -47,7 +47,7 @@ public class InitArr implements InitVal {
     }
 
     public ArrayList<InitVal> getVars() {
-        return vars;
+        return new ArrayList<InitVal>() {{if (first != null) {add(first); addAll(vars);}}};
     }
 
     @Override
