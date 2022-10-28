@@ -20,6 +20,12 @@ public class Code {
         DIV("/"), // DIV VAR VAR VAR
         MOD("%"), // MOD VAR VAR VAR
         NOT("!"), // NOT VAR (EMPTY) VAR
+        EQ("=="), // EQ VAR VAR VAR
+        NE("!="), // NE VAR VAR VAR
+        GT(">"), // GT VAR VAR VAR
+        GE(">="), // GE VAR VAR VAR
+        LT("<"), // LT VAR VAR VAR
+        LE("<="), // LE VAR VAR VAR
 
         // IO
         GET_INT("getInt"), // GET_INT (EMPTY) (EMPTY) VAR
@@ -36,9 +42,10 @@ public class Code {
         RETURN("return"), // RETURN [VAR or (EMPTY)] (EMPTY) (EMPTY)
 
         // JUMP
-        JUMP("jump"),
-        COND_JUMP("condition_jump"),
-        LABEL("label"),
+        JUMP("jump"), // JUMP (LABEL) (EMPTY) (EMPTY)
+        NEZ_JUMP("nez_jump"), // NEZ_JUMP (VAR) (EMPTY) (LABEL)
+        EQZ_JUMP("eqz_jump"), // EQZ_JUMP (VAR) (EMPTY) (LABEL)
+        LABEL("label"), // LABEL [(AUTO) or (LABEL)] (EMPTY) (EMPTY)
 
         // DEF
         DEF_VAL("var_def"), // DEF_VAL [VAR or (EMPTY)] (EMPTY) VAR
@@ -64,6 +71,7 @@ public class Code {
 
     private final HashSet<Op> alu = new HashSet<Op>() {{
         add(Op.ASSIGN); add(Op.SUB); add(Op.MUL); add(Op.ADD); add(Op.MOD); add(Op.NOT); add(Op.DIV);
+        add(Op.EQ); add(Op.GE); add(Op.GT); add(Op.LT); add(Op.LE); add(Op.NE);
     }};
     private final HashSet<Op> io = new HashSet<Op>() {{
         add(Op.GET_INT); add(Op.PRINT_STR); add(Op.PRINT_INT);
@@ -79,10 +87,15 @@ public class Code {
         add(Op.BLOCK_BEGIN); add(Op.BLOCK_END);
     }};
     private final HashSet<Op> jump = new HashSet<Op>() {{
-        add(Op.JUMP); add(Op.COND_JUMP); add(Op.LABEL);
+        add(Op.JUMP); add(Op.NEZ_JUMP); add(Op.EQZ_JUMP); add(Op.LABEL);
     }};
 
-    private static final Pattern varPattern = Pattern.compile("(.+\\(\\d+,\\d+\\)).*");
+    public static final Pattern varPattern = Pattern.compile("(.+\\(\\d+,\\d+\\)).*");
+    public static final Pattern digitPattern = Pattern.compile("^\\d+$");
+    public static final Pattern tempVarPattern = Pattern.compile("\\(T(\\d+)\\)");
+    public static final Pattern indexPattern = Pattern.compile("^.+\\[(\\d+)]$");
+    public static final Pattern label = Pattern.compile("^\\(LABEL\\d+\\)$");
+    public static final Pattern label_end = Pattern.compile("^\\(LABEL_END\\d+\\)$");
 
     public Code(Op instr, String ord1, String ord2, String res) {
         this.instr = instr;
@@ -95,7 +108,7 @@ public class Code {
         if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(1), null);
         if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(1), null);
         if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(1), null);
-        System.out.println(this.instr + " " + symbolOrd1 + " " + symbolOrd2 + " " + symbolRes);
+        // System.out.println(this.instr + " " + symbolOrd1 + " " + symbolOrd2 + " " + symbolRes);
     }
 
     @Override
@@ -125,6 +138,11 @@ public class Code {
             else if (instr == Op.FUNC_END) return "========" + instr + ": " + ord1 + "========\n";
             else if (instr == Op.RETURN && Objects.equals(ord1, "(EMPTY)")) return instr.toString();
             else if (instr == Op.RETURN) return instr + " " + ord1;
+        }
+        if (jump.contains(instr)) {
+            if (instr == Op.LABEL) return ord1 + ":";
+            else if (instr == Op.JUMP) return instr + " " + ord1;
+            else if (instr == Op.EQZ_JUMP || instr == Op.NEZ_JUMP) return instr + " " + ord1 + " " + res;
         }
         return null;
     }

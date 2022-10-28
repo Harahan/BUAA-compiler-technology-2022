@@ -1,6 +1,7 @@
 package Middle;
 
 import Error.Error;
+import Error.ErrorTable;
 import Lexer.Token;
 import Lexer.Type;
 import Middle.Util.Calc;
@@ -9,7 +10,6 @@ import Symbol.*;
 import Syntax.CompUnit;
 import Syntax.Decl.Decl;
 import Syntax.Decl.Def;
-import Error.*;
 import Syntax.Decl.InitVal.InitArr;
 import Syntax.Decl.InitVal.InitExp;
 import Syntax.Decl.InitVal.InitVal;
@@ -31,6 +31,7 @@ import Syntax.Util.Index;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Stack;
 
 public class Visitor {
     private int blockLevel = 0;
@@ -41,6 +42,7 @@ public class Visitor {
 
     public static SymbolTable global;
     public static HashMap<String, Symbol> str2Symbol = new HashMap<>();
+    private final Stack<String> whileBeginEndLabelStack = new Stack<>();
 
     public Visitor(CompUnit compUnit) {
         compUnitTravel(compUnit);
@@ -189,7 +191,6 @@ public class Visitor {
     /*
     -------------------------------
     Error : b, g
-    TODO
      */
     private void funcTravel(FuncDef funcDef) {
         Token ident = funcDef.getIdentTk();
@@ -233,6 +234,8 @@ public class Visitor {
             ErrorTable.add(new Error(Error.Type.LACK_RETURN_VALUE, funcDef.getBlock().getrBTK().getLine()));
 
         // 回撤
+        if (curFunc.getType() == Func.Type.voidFunc && (spl == null || !(spl.getSpl() instanceof ReturnStmt)))
+            MidCodeList.add(Code.Op.RETURN, "(EMPTY)", "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.FUNC_END, curFunc.getNickname(), "(EMPTY)", "(EMPTY)");
         back();
         curFunc = null;
@@ -317,18 +320,53 @@ public class Visitor {
     }
 
     private void ifStmtTravel(IfStmt ifStmt) {
-        condTravel(ifStmt.getCond());
+        // 无else:
+        // 满足: 顺序执行,不满足: jump label_1
+        // {...}
+        // jump label_2
+        // label_1
+        // label_2
+
+        // 有else:
+        // 满足: 顺序执行,不满足: jump label_1
+        // {...}
+        // jump label_2
+        // label_1
+        // {...}
+        // label_2
+        Integer label1 = ++MidCodeList.labelCounter;
+        int label2 = ++MidCodeList.labelCounter;
+        condTravel(ifStmt.getCond(), label1);
         stmtTravel(ifStmt.getIfStmt());
+        MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
+        MidCodeList.add(Code.Op.LABEL, "(LABEL" + label1 + ")", "(EMPTY)", "(EMPTY)");
         if (ifStmt.hasElse()) {
             stmtTravel(ifStmt.getElseStmt());
         }
+        MidCodeList.add(Code.Op.LABEL, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
     }
 
     private void whileStmtTravel(WhileStmt whileStmt) {
+        // label:
+        // ...不满足: 跳label_end, 满足: 顺序执行
+        // { ... }
+        // jump label
+        // label_end
         ++cycLevel;
+        String whileBeginLabel = MidCodeList.add(Code.Op.LABEL, "(AUTO)", "(EMPTY)", "(EMPTY)");
+        // get end
+        Integer label = ++MidCodeList.labelCounter;
 
-        condTravel(whileStmt.getCond());
+        whileBeginEndLabelStack.push(whileBeginLabel);
+        whileBeginEndLabelStack.push("(LABEL" + label + ")");
+
+        condTravel(whileStmt.getCond(), label);
         stmtTravel(whileStmt.getStmt());
+        MidCodeList.add(Code.Op.JUMP, whileBeginLabel, "(EMPTY)", "(EMPTY)");
+        MidCodeList.add(Code.Op.LABEL, "(LABEL" + label + ")", "(EMPTY)", "(EMPTY)");
+
+        whileBeginEndLabelStack.pop();
+        whileBeginEndLabelStack.pop();
 
         --cycLevel;
     }
@@ -366,8 +404,8 @@ public class Visitor {
         MidCodeList.add(Code.Op.ASSIGN, var, "(EMPTY)", nickname);
     }
 
-    private String expStmtTravel(ExpStmt expStmt) {
-        return expTravel(expStmt.getExp());
+    private void expStmtTravel(ExpStmt expStmt) {
+        expTravel(expStmt.getExp());
     }
 
     /*
@@ -376,7 +414,12 @@ public class Visitor {
      */
     private void loopStmtTravel(LoopStmt loopStmt) {
         // m
-        if (cycLevel == 0) ErrorTable.add(new Error(Error.Type.BREAK_CONTINUE_OUT_LOOP, loopStmt.getContrTK().getLine()));
+        if (cycLevel == 0) {
+            ErrorTable.add(new Error(Error.Type.BREAK_CONTINUE_OUT_LOOP, loopStmt.getContrTK().getLine()));
+            return;
+        }
+        if (loopStmt.getContrTK().getType() == Type.BREAKTK) MidCodeList.add(Code.Op.JUMP, whileBeginEndLabelStack.lastElement(), "(EMPTY)", "(EMPTY)");
+        else MidCodeList.add(Code.Op.JUMP, whileBeginEndLabelStack.get(whileBeginEndLabelStack.size() - 2), "(EMPTY)", "(EMPTY)");
     }
 
     /*
@@ -429,12 +472,27 @@ public class Visitor {
 
     // -------------------------- EXP ----------------------------
 
-    private void lOrExpTravel(LOrExp lOrExp) {
+    // 不满足跳 label
+    private void lOrExpTravel(LOrExp lOrExp, Integer label) {
+        // ... || ... || ... x
+        // 1. 满足跳 x 不满足顺序
+        // 2. 满足跳 x 不满足顺序
+        // ...
+        // n. 不满足跳 label
+        Integer x = ++MidCodeList.labelCounter;
         LAndExp first = lOrExp.getFirst();
-        lAndExpTravel(first);
-        for (LAndExp lAndExp : lOrExp.getTs()) {
-            lAndExpTravel(lAndExp);
+        // ... 1. 不满足跳 label
+        // ... || ...... 1. 满足跳 x
+        if (lOrExp.getTs().size() == 0) {
+            lAndExpTravel(first, label, false);
+            return;
         }
+        lAndExpTravel(first, x, true);
+        for (int i = 0; i < lOrExp.getTs().size(); ++i) {
+            if (i != lOrExp.getTs().size() - 1) lAndExpTravel(lOrExp.getTs().get(i), x, true);
+            else lAndExpTravel(lOrExp.getTs().get(i), label, false);
+        }
+        MidCodeList.add(Code.Op.LABEL, "(LABEL" + x + ")", "(EMPTY)", "(EMPTY)");
     }
 
     /*
@@ -544,12 +602,14 @@ public class Visitor {
         UnaryExp first = mulExp.getFirst();
         String ord1 = unaryExpTravel(first);
         String res = ord1;
-        if (mulExp.getTs().size() > 0) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
+        // if (mulExp.getTs().size() > 0 && !res.equals("(AUTO)")) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
         for (int i = 0; i < mulExp.getTs().size(); ++i) {
             String ord2 = unaryExpTravel(mulExp.getTs().get(i));
             Code.Op op = mulExp.getOperators().get(i).getType() == Type.MULT ? Code.Op.MUL:
                     mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : Code.Op.MOD;
+            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
             res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            ord1 = res;
         }
         return res;
     }
@@ -558,42 +618,82 @@ public class Visitor {
         MulExp first = addExp.getFirst();
         String ord1 = mulExpTravel(first);
         String res = ord1;
-        if (addExp.getTs().size() > 0) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
+        //if (addExp.getTs().size() > 0 && !res.equals("(AUTO)")) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
         for (int i = 0; i < addExp.getTs().size(); ++i) {
             String ord2 = mulExpTravel(addExp.getTs().get(i));
             Code.Op op = addExp.getOperators().get(i).getType() == Type.PLUS ? Code.Op.ADD : Code.Op.SUB;
+            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
             res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
             ord1 = res;
         }
         return res;
     }
 
-    private void relExpTravel(RelExp relExp) {
+    private String relExpTravel(RelExp relExp) {
         AddExp first = relExp.getFirst();
-        addExpTravel(first);
-        for (AddExp addExp : relExp.getTs()) {
-            addExpTravel(addExp);
+        String ord1 = addExpTravel(first);
+        String res = ord1;
+        for (int i = 0; i <  relExp.getTs().size(); ++i) {
+            String ord2 = addExpTravel(relExp.getTs().get(i));
+            Code.Op op = relExp.getOperators().get(i).getType() == Type.GRE ? Code.Op.GT :
+                                relExp.getOperators().get(i).getType() == Type.LSS ?  Code.Op.LT :
+                                relExp.getOperators().get(i).getType() == Type.GEQ ? Code.Op.GE : Code.Op.LE;
+            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
+            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            ord1 = res;
         }
+        return res;
     }
 
-    private void eqExpTravel(EqExp eqExp) {
+    // 满足跳 x, ok = true
+    // 不满足跳 x, ok = false
+    // == 和 && 规则相似
+    private void eqExpTravel(EqExp eqExp, Integer x, boolean ok) {
         RelExp first = eqExp.getFirst();
-        relExpTravel(first);
-        for (RelExp relExp : eqExp.getTs()) {
-            relExpTravel(relExp);
+        String ord1 = relExpTravel(first);
+        String res = ord1;
+        for (int i = 0; i <  eqExp.getTs().size(); ++i) {
+            String ord2 = relExpTravel(eqExp.getTs().get(i));
+            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
+            Code.Op op = eqExp.getOperators().get(i).getType() == Type.EQL ? Code.Op.EQ : Code.Op.NE;
+            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            ord1 = res;
         }
+        if (ok) MidCodeList.add(Code.Op.NEZ_JUMP, res,  "(EMPTY)", "(LABEL" + x + ")");
+        else MidCodeList.add(Code.Op.EQZ_JUMP, res, "(EMPTY)","(LABEL" + x + ")");
     }
 
-    private void lAndExpTravel(LAndExp lAndExp) {
+    // 满足跳 x, ok = true
+    // 不满足跳 x, ok = false
+    private void lAndExpTravel(LAndExp lAndExp, Integer x, boolean ok) {
         EqExp first = lAndExp.getFirst();
-        eqExpTravel(first);
-        for (EqExp eqExp : lAndExp.getTs()) {
-            eqExpTravel(eqExp);
+        ArrayList<EqExp> eqExps = lAndExp.getTs();
+        if (ok) {
+            // ... && ... && ... y
+            // 前面的不满足跳 y
+            // 最后一条满足跳 x
+            Integer y = ++MidCodeList.labelCounter;
+            if (eqExps.size() == 0) {
+                eqExpTravel(first, x, true);
+                return;
+            }
+            eqExpTravel(first, y, false);
+            for (int i = 0; i < eqExps.size(); ++i) {
+                if (i != eqExps.size() -1) eqExpTravel(eqExps.get(i), y, false);
+                else eqExpTravel(eqExps.get(i), x, true);
+            }
+            // System.out.println(y);
+            MidCodeList.add(Code.Op.LABEL, "(LABEL" + y + ")", "(EMPTY)", "(EMPTY)");
+        } else {
+            // ... && ... && ...
+            // 不满足跳 x
+            eqExpTravel(first, x, false);
+            for (EqExp exp : eqExps) eqExpTravel(exp, x, false);
         }
     }
 
-    private void condTravel(Cond cond) {
-        lOrExpTravel(cond.getlOrExp());
+    private void condTravel(Cond cond, Integer label) {
+        lOrExpTravel(cond.getlOrExp(), label);
     }
 
     private String expTravel(Exp exp) {
