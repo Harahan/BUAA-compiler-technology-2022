@@ -42,6 +42,7 @@ public class Visitor {
 
     public static SymbolTable global;
     public static HashMap<String, Symbol> str2Symbol = new HashMap<>();
+    private static HashMap<Integer, Integer> blockLevelNum = new HashMap<>();
     private final Stack<String> whileBeginEndLabelStack = new Stack<>();
 
     public Visitor(CompUnit compUnit) {
@@ -49,8 +50,9 @@ public class Visitor {
     }
 
     private void compUnitTravel(CompUnit compUnit) {
-        curTable = new SymbolTable(null, blockLevel, 1);
+        curTable = new SymbolTable(null, blockLevel, 1, false);
         global = curTable;
+        blockLevelNum.put(0, 1);
         for (Decl decl : compUnit.getDecls()) declTravel(decl);
         for (FuncDef funcDef : compUnit.getFuncDefs()) funcTravel(funcDef);
         funcTravel(compUnit.getMainFuncDef());
@@ -71,7 +73,7 @@ public class Visitor {
     /*
     -------------------------------
     Error : b
-    TODO: 注意全局变量默认初始化为0，当前在这步并没有处理
+    注意全局变量默认初始化为0
      */
     private void defTravel(Def def) {
         Token ident = def.getIdentTk();
@@ -93,7 +95,7 @@ public class Visitor {
                 curTable.add(val);
                 nickname = val.getNickname();
                 MidCodeList.add(Code.Op.DEF_VAL, "(EMPTY)", "(EMPTY)", nickname);
-                val.addInitVal(null);
+                val.addInitVal(blockLevel == 0 ? 0 : null);
             } else {
                 // 非数组且初始化
                 x = expTravel(((InitExp)def.getInitVal()).getExp());
@@ -103,6 +105,7 @@ public class Visitor {
                 MidCodeList.add(Code.Op.DEF_VAL, x, "(EMPTY)", nickname);
                 try {
                     val.addInitVal(Integer.valueOf(x));
+                    // if (nickname.equals("fff(1,1)")) System.out.println(x);
                 } catch (Exception ignore) {
                     val.addInitVal(null);
                 }
@@ -127,8 +130,10 @@ public class Visitor {
                 MidCodeList.add(Code.Op.DEF_ARR, "(EMPTY)", "(EMPTY)", nickname);
                 if (dims.size() == 2) {
                     for (int i = 0; i < dims.get(0); ++i) {
-                        for (int j = 0; j < dims.get(1); ++j) val.addInitVal(null);
+                        for (int j = 0; j < dims.get(1); ++j) val.addInitVal(blockLevel == 0 ? 0 : null);
                     }
+                } else {
+                    for (int i = 0; i < dims.get(0); ++i) val.addInitVal(blockLevel == 0 ? 0 : null);
                 }
             } else {
                 // 数组且初始化
@@ -142,6 +147,7 @@ public class Visitor {
                     // 2维
                     assert vars.size() == dims.get(0);
                     for (int i = 0; i < dims.get(0); ++i) {
+                        // System.out.println(nickname);
                         ArrayList<InitVal> o = ((InitArr) vars.get(i)).getVars();
 
                         if (o.isEmpty()) { // {{} ...}
@@ -151,6 +157,7 @@ public class Visitor {
                             }
                         } else { // {{2, 2} ...}
                             assert o.size() == dims.get(1);
+                            // System.out.println(o.size() + " " + dims.get(1));
                             for (int j = 0; j < dims.get(1); ++j) {
                                 x = expTravel(((InitExp) o.get(j)).getExp());
                                 try {
@@ -182,6 +189,7 @@ public class Visitor {
                         }
                     }
                 }
+                MidCodeList.add(Code.Op.END_DEF_ARR, "(EMPTY)", "(EMPTY)", nickname);
             }
         }
     }
@@ -206,7 +214,8 @@ public class Visitor {
 
         // 处理符号表
         ++blockLevel;
-        curTable = new SymbolTable(curTable, blockLevel, curTable.getSons().size() + 1); // 已经更新
+        curTable = new SymbolTable(curTable, blockLevel, blockLevelNum.getOrDefault(blockLevel, 0) + 1, true); // 已经更新
+        blockLevelNum.merge(blockLevel, 1, Integer::sum);
         Func func = new Func(name, funcDef.getFuncType().getType() == Type.VOIDTK ? Func.Type.voidFunc : Func.Type.intFunc, funcDef.getParamNum(), curTable, curTable.getFa());
         curTable.getFa().add(func);
         curTable.getFa().add(curTable);
@@ -280,7 +289,8 @@ public class Visitor {
        ArrayList<Block.BlockItem> blockItems = block.getBlockItems();
        if (!isFunc) {
            ++blockLevel;
-           curTable = new SymbolTable(curTable, blockLevel, curTable.getSons().size() + 1);
+           curTable = new SymbolTable(curTable, blockLevel, blockLevelNum.getOrDefault(blockLevel, 0) + 1, false);
+           blockLevelNum.merge(blockLevel, 1, Integer::sum);
            curTable.getFa().add(curTable);
            MidCodeList.add(Code.Op.BLOCK_BEGIN, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
        }
@@ -342,6 +352,8 @@ public class Visitor {
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label1 + ")", "(EMPTY)", "(EMPTY)");
         if (ifStmt.hasElse()) {
             stmtTravel(ifStmt.getElseStmt());
+            MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
+            // !!! 空jump
         }
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
     }
@@ -353,7 +365,9 @@ public class Visitor {
         // jump label
         // label_end
         ++cycLevel;
-        String whileBeginLabel = MidCodeList.add(Code.Op.LABEL, "(AUTO)", "(EMPTY)", "(EMPTY)");
+        // !!! 空jump
+        String whileBeginLabel = MidCodeList.add(Code.Op.JUMP, "(AUTO)", "(EMPTY)", "(EMPTY)");
+        MidCodeList.add(Code.Op.LABEL, whileBeginLabel, "(EMPTY)", "(EMPTY)");
         // get end
         Integer label = ++MidCodeList.labelCounter;
 
@@ -383,7 +397,7 @@ public class Visitor {
             ErrorTable.add(new Error(Error.Type.CHANGE_CONST_VALUE, ident.getLine()));
             return;
         }
-        MidCodeList.add(Code.Op.GET_INT, "(EMPTY)", "(EMPTY)", lValTravel(inputStmt.getLVal()));
+        MidCodeList.add(Code.Op.GET_INT, "(EMPTY)", "(EMPTY)", lValTravel(inputStmt.getLVal(), false));
     }
 
     /*
@@ -399,7 +413,7 @@ public class Visitor {
             return;
         }
 
-        String nickname = lValTravel(assignStmt.getlVal());
+        String nickname = lValTravel(assignStmt.getlVal(), false);
         String var = expTravel(assignStmt.getExp());
         MidCodeList.add(Code.Op.ASSIGN, var, "(EMPTY)", nickname);
     }
@@ -442,13 +456,19 @@ public class Visitor {
             return;
         }
 
+        // 先算
+        ArrayList<String> vals = new ArrayList<>();
+        for (Exp exp : exps) {
+            vals.add(expTravel(exp));
+        }
+        // if (vals.contains("(T91)")) System.out.println(vals);
         int j = 0;
         StringBuilder p = new StringBuilder();
         for (int i = 0; i < fs.length(); ++i) {
             if (fs.charAt(i) == '%' && i + 1 < fs.length() && fs.charAt(i + 1) == 'd') {
                 if (p.length() != 0) MidCodeList.add(Code.Op.PRINT_STR, p.toString(), "(EMPTY)", "(EMPTY)");
                 p = new StringBuilder();
-                MidCodeList.add(Code.Op.PRINT_INT, expTravel(exps.get(j++)), "(EMPTY)", "(EMPTY)");
+                MidCodeList.add(Code.Op.PRINT_INT, vals.get(j++), "(EMPTY)", "(EMPTY)");
                 ++i;
             } else p.append(fs.charAt(i));
         }
@@ -514,7 +534,8 @@ public class Visitor {
             String param = expTravel(first);
 
             // e
-            List<Symbol> symbols = func.getFuncTable().getOrderSymbols().subList(0, func.getNum()); // 形参
+            ArrayList<Symbol> symbols = new ArrayList<Symbol>(func.getFuncTable().getOrderSymbols().subList(0, func.getNum())); // 形参
+            // System.out.println(symbols);
             int dim = first.getFormDim();
             if (dim != -10000 && dim != symbols.get(0).getDim()) {
                 ErrorTable.add(new Error(Error.Type.MISMATCH_PARAM_TYPE, ident.getLine()));
@@ -523,7 +544,7 @@ public class Visitor {
                 return;
             }
             MidCodeList.add(symbols.get(0).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
-
+            // System.out.println(funcRParams.getExps().size());
 
             for (int i = 0; i < funcRParams.getExps().size(); ++i) {
                 Exp exp = funcRParams.getExps().get(i);
@@ -531,6 +552,7 @@ public class Visitor {
 
                 // e
                 dim = exp.getFormDim();
+                //System.out.println(symbols + " " + symbols.get(i + 1) + " " + (i + 1));
                 if (dim != -10000 && dim != symbols.get(i + 1).getDim()) {
                     ErrorTable.add(new Error(Error.Type.MISMATCH_PARAM_TYPE, ident.getLine()));
                     return;
@@ -556,7 +578,7 @@ public class Visitor {
         if (exp != null) {
             return expTravel(exp);
         } else if (lVal != null) {
-            return lValTravel(lVal);
+            return lValTravel(lVal, true);
         }
         // number
         return Integer.toString(primaryExp.getNumber().val());
@@ -602,12 +624,10 @@ public class Visitor {
         UnaryExp first = mulExp.getFirst();
         String ord1 = unaryExpTravel(first);
         String res = ord1;
-        // if (mulExp.getTs().size() > 0 && !res.equals("(AUTO)")) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
         for (int i = 0; i < mulExp.getTs().size(); ++i) {
             String ord2 = unaryExpTravel(mulExp.getTs().get(i));
             Code.Op op = mulExp.getOperators().get(i).getType() == Type.MULT ? Code.Op.MUL:
                     mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : Code.Op.MOD;
-            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
             res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
             ord1 = res;
         }
@@ -618,11 +638,9 @@ public class Visitor {
         MulExp first = addExp.getFirst();
         String ord1 = mulExpTravel(first);
         String res = ord1;
-        //if (addExp.getTs().size() > 0 && !res.equals("(AUTO)")) ord1 = MidCodeList.add(Code.Op.ASSIGN, res, "(EMPTY)", "(AUTO)");
         for (int i = 0; i < addExp.getTs().size(); ++i) {
             String ord2 = mulExpTravel(addExp.getTs().get(i));
             Code.Op op = addExp.getOperators().get(i).getType() == Type.PLUS ? Code.Op.ADD : Code.Op.SUB;
-            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
             res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
             ord1 = res;
         }
@@ -638,7 +656,6 @@ public class Visitor {
             Code.Op op = relExp.getOperators().get(i).getType() == Type.GRE ? Code.Op.GT :
                                 relExp.getOperators().get(i).getType() == Type.LSS ?  Code.Op.LT :
                                 relExp.getOperators().get(i).getType() == Type.GEQ ? Code.Op.GE : Code.Op.LE;
-            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
             res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
             ord1 = res;
         }
@@ -654,7 +671,6 @@ public class Visitor {
         String res = ord1;
         for (int i = 0; i <  eqExp.getTs().size(); ++i) {
             String ord2 = relExpTravel(eqExp.getTs().get(i));
-            // if (Code.varPattern.matcher(ord1).matches() && Code.varPattern.matcher(ord2).matches()) ord1 = MidCodeList.add(Code.Op.ASSIGN, ord1, "(EMPTY)", "(AUTO)");
             Code.Op op = eqExp.getOperators().get(i).getType() == Type.EQL ? Code.Op.EQ : Code.Op.NE;
             res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
             ord1 = res;
@@ -682,7 +698,6 @@ public class Visitor {
                 if (i != eqExps.size() -1) eqExpTravel(eqExps.get(i), y, false);
                 else eqExpTravel(eqExps.get(i), x, true);
             }
-            // System.out.println(y);
             MidCodeList.add(Code.Op.LABEL, "(LABEL" + y + ")", "(EMPTY)", "(EMPTY)");
         } else {
             // ... && ... && ...
@@ -709,7 +724,7 @@ public class Visitor {
     ------------------------------------
     Error: c
      */
-    private String lValTravel(LVal lVal) {
+    private String lValTravel(LVal lVal, boolean assign) {
         Token ident = lVal.getIdentTk();
         String name = ident.getStrVal();
 
@@ -759,7 +774,8 @@ public class Visitor {
         } else if (!dims.isEmpty()) { // 地址
             nickname += "[0]";
         }
-
+        // 不为函数参数
+        if (assign && dims.size() == indexes.size() && indexes.size() != 0) return MidCodeList.add(Code.Op.ASSIGN, nickname, "(EMPTY)", "(AUTO)");
         return nickname;
     }
 }

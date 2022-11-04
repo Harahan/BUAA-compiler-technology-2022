@@ -15,6 +15,7 @@ public class Val implements Symbol {
     private final int blockLevel;
     private final int blockNum;
     private final SymbolTable symbolTable;
+    private boolean hasInitVal = true;
 
     public Val(String name, boolean isConst, int dim, ArrayList<Integer> dims, SymbolTable symbolTable) {
         this.name = name;
@@ -28,6 +29,7 @@ public class Val implements Symbol {
     }
 
     public void addInitVal(Integer initVal) {
+        if (initVal == null) hasInitVal = false;
         this.initVal.add(initVal);
         //System.out.println(name + ": " + this.initVal);
     }
@@ -59,10 +61,9 @@ public class Val implements Symbol {
 
     @Override
     public Integer getSize() {
-        /*int sz = 1;
+        int sz = 1;
         for (Integer x : dims) sz *= x;
-        return sz * 4;*/
-        return 0;
+        return sz * 4;
     }
 
     @Override
@@ -104,5 +105,13 @@ public class Val implements Symbol {
         //if (dim == 1) x += "[" + dims.get(0) + "]";
         //if (dim == 2) x += "[" + dims.get(0) + "," + dims.get(1) + "]";
         return name + x + "(" + blockLevel + "," + blockNum + ")";
+    }
+
+    public boolean isHasInitVal() {
+        return hasInitVal && initVal.size() != 0;
+    }
+
+    public ArrayList<Integer> getInitVal() {
+        return initVal;
     }
 }

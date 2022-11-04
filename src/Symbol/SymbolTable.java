@@ -9,14 +9,18 @@ public class SymbolTable {
     private final SymbolTable fa;
     private final ArrayList<SymbolTable> sons = new ArrayList<>();
     private int size = 0;
+    public int totSize = 0;
     private final int blockLevel;
     private final int blockNum;
 
+    public final boolean isFunc;
 
-    public SymbolTable(SymbolTable fa, int blockLevel, int blockNum) {
+
+    public SymbolTable(SymbolTable fa, int blockLevel, int blockNum, boolean isFunc) {
         this.fa = fa;
         this.blockLevel = blockLevel;
         this.blockNum = blockNum;
+        this.isFunc = isFunc;
     }
 
     public boolean contains(String name, boolean rec) {
@@ -63,6 +67,10 @@ public class SymbolTable {
 
     public String getNickName() {
         return "(" + blockLevel + "," + blockNum + ")";
+    }
+
+    public int getSize() {
+        return size;
     }
 
     @Override

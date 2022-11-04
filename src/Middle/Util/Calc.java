@@ -52,8 +52,8 @@ public class Calc {
         if (op != null) {
 
             switch (op.getType()) {
-                case PLUS: res = -calcUnaryExp(unaryExp.getUnaryExp()); break;
-                case MINU: res = calcUnaryExp(unaryExp.getUnaryExp()); break;
+                case PLUS: res = calcUnaryExp(unaryExp.getUnaryExp()); break;
+                case MINU: res = -calcUnaryExp(unaryExp.getUnaryExp()); break;
                 case NOT: res = calcUnaryExp(unaryExp.getUnaryExp()) == 0 ? 1 : 0; break;
                 default: assert false;
             }

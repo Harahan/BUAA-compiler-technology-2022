@@ -1,3 +1,4 @@
+import Backend.MipsGenerator;
 import Lexer.Lexer;
 import Middle.MidCodeList;
 import Middle.Util.Code;
@@ -7,6 +8,8 @@ import Syntax.Parser;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.regex.Matcher;
+
 import Error.ErrorTable;
 
 public class Compiler {
@@ -42,5 +45,6 @@ public class Compiler {
             return;
         }
         write(MidCodeList.printMidCode(), "midCode.txt");
+        write(new MipsGenerator().printMipsCode(), "mips.txt");
     }
 }

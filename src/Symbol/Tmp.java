@@ -1,33 +1,21 @@
 package Symbol;
 
-
 import Middle.Visitor;
 
-public class Func implements Symbol {
-    public enum Type {
-        voidFunc, intFunc;
-    }
-
-    private final Integer num; // 参数数量
-    private final String name;
-    private final Type type;
+public class Tmp implements Symbol {
+    private String name;
+    private int addr;
     private final int blockLevel;
     private final int blockNum;
-    private Integer addr;
-    private final SymbolTable funcTable;
     private final SymbolTable symbolTable;
 
-    public Func(String name, Type type, Integer num, SymbolTable funcTable, SymbolTable symbolTable) {
+    public Tmp(String name, SymbolTable symbolTable) {
         this.name = name;
-        this.type = type;
-        this.num = num;
-        this.blockLevel = symbolTable.getBlockLevel();
-        this.funcTable = funcTable;
-        this.blockNum = symbolTable.getBlockNum();
         this.symbolTable = symbolTable;
-        Visitor.str2Symbol.put(name + "(" + blockLevel + "," + blockNum + ")", this);
+        this.blockLevel = symbolTable.getBlockLevel();
+        this.blockNum = symbolTable.getBlockNum();
+        Visitor.str2Symbol.put(name, this);
     }
-
     @Override
     public String getName() {
         return name;
@@ -46,12 +34,12 @@ public class Func implements Symbol {
     @Override
     public Integer setAndGetAddr(int addr) {
         this.addr = addr;
-        return addr;
+        return addr + 4;
     }
 
     @Override
     public Integer getSize() {
-        return 0;
+        return 4;
     }
 
     @Override
@@ -64,16 +52,9 @@ public class Func implements Symbol {
         return false;
     }
 
-    public Type getType() {
-        return type;
-    }
-
-    public Integer getNum() {
-        return num;
-    }
-
-    public SymbolTable getFuncTable() {
-        return funcTable;
+    @Override
+    public int getDim() {
+        return 0;
     }
 
     @Override
@@ -88,12 +69,6 @@ public class Func implements Symbol {
 
     @Override
     public String toString() {
-        return "func: " + name + " returnType: " + type + " paramNum: " + num + " <blockLevel, blockNum>: " + blockLevel + ", " + blockNum +
-                " funcTable's " + funcTable.toString();
-    }
-
-    @Override
-    public int getDim() {
-        return 0;
+        return getNickname();
     }
 }

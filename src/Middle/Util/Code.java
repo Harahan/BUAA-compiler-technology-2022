@@ -49,7 +49,8 @@ public class Code {
 
         // DEF
         DEF_VAL("var_def"), // DEF_VAL [VAR or (EMPTY)] (EMPTY) VAR
-        DEF_ARR("var_arr"), // DEF_ARR (EMPTY) (EMPTY) VAR
+        DEF_ARR("arr_def"), // DEF_ARR (EMPTY) (EMPTY) VAR
+        END_DEF_ARR("end_arr_def"), // END_DEF_ARR (EMPTY) (EMPTY) VAR
 
         // BLOCK
         BLOCK_BEGIN("block_begin"), // BLOCK_BEGIN VAR (EMPTY) (EMPTY)
@@ -69,33 +70,32 @@ public class Code {
     private Symbol symbolOrd2 = null;
     private Symbol symbolRes = null;
 
-    private final HashSet<Op> alu = new HashSet<Op>() {{
+    public static final HashSet<Op> alu = new HashSet<Op>() {{
         add(Op.ASSIGN); add(Op.SUB); add(Op.MUL); add(Op.ADD); add(Op.MOD); add(Op.NOT); add(Op.DIV);
         add(Op.EQ); add(Op.GE); add(Op.GT); add(Op.LT); add(Op.LE); add(Op.NE);
     }};
-    private final HashSet<Op> io = new HashSet<Op>() {{
+    public static final HashSet<Op> io = new HashSet<Op>() {{
         add(Op.GET_INT); add(Op.PRINT_STR); add(Op.PRINT_INT);
     }};
-    private final HashSet<Op> func = new HashSet<Op>() {{
+    public static final HashSet<Op> func = new HashSet<Op>() {{
         add(Op.FUNC); add(Op.FUNC_END); add(Op.CALL); add(Op.PREPARE_CALL); add(Op.PUSH_PAR_ADDR); add(Op.PUSH_PAR_INT);
         add(Op.RETURN);
     }};
-    private final HashSet<Op> def = new HashSet<Op>() {{
-        add(Op.DEF_ARR); add(Op.DEF_VAL);
+    public static final HashSet<Op> def = new HashSet<Op>() {{
+        add(Op.DEF_ARR); add(Op.DEF_VAL); add(Op.END_DEF_ARR);
     }};
-    private final HashSet<Op> block = new HashSet<Op>() {{
+    public static final HashSet<Op> block = new HashSet<Op>() {{
         add(Op.BLOCK_BEGIN); add(Op.BLOCK_END);
     }};
-    private final HashSet<Op> jump = new HashSet<Op>() {{
+    public static final HashSet<Op> jump = new HashSet<Op>() {{
         add(Op.JUMP); add(Op.NEZ_JUMP); add(Op.EQZ_JUMP); add(Op.LABEL);
     }};
 
-    public static final Pattern varPattern = Pattern.compile("(.+\\(\\d+,\\d+\\)).*");
+    public static final Pattern varPattern = Pattern.compile("^(.+?\\(\\d+,\\d+\\)).*$");
     public static final Pattern digitPattern = Pattern.compile("^\\d+$");
     public static final Pattern tempVarPattern = Pattern.compile("\\(T(\\d+)\\)");
-    public static final Pattern indexPattern = Pattern.compile("^.+\\[(\\d+)]$");
+    public static final Pattern indexPattern = Pattern.compile("^.+\\[(.+)]$");
     public static final Pattern label = Pattern.compile("^\\(LABEL\\d+\\)$");
-    public static final Pattern label_end = Pattern.compile("^\\(LABEL_END\\d+\\)$");
 
     public Code(Op instr, String ord1, String ord2, String res) {
         this.instr = instr;
@@ -108,6 +108,13 @@ public class Code {
         if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(1), null);
         if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(1), null);
         if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(1), null);
+        matcherOrd1 = tempVarPattern.matcher(ord1);
+        matcherOrd2 = tempVarPattern.matcher(ord2);
+        matcherRes = tempVarPattern.matcher(res);
+        if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(0), null);
+        if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(0), null);
+        if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(0), null);
+        // if (res.equals("(T4)")) System.out.println(res + " " + symbolRes);
         // System.out.println(this.instr + " " + symbolOrd1 + " " + symbolOrd2 + " " + symbolRes);
     }
 
@@ -126,6 +133,7 @@ public class Code {
             if (instr == Op.DEF_ARR) return instr + " " + res;
             else if (instr == Op.DEF_VAL && !Objects.equals(ord1, "(EMPTY)")) return instr + " " + ord1 + " " + res;
             else if (instr == Op.DEF_VAL && Objects.equals(ord1, "(EMPTY)")) return instr + " " + res;
+            else if (instr == Op.END_DEF_ARR) return instr + " " + res;
         }
         if (io.contains(instr)) {
             if (instr == Op.GET_INT) return instr + " " + res;
@@ -161,5 +169,17 @@ public class Code {
 
     public Symbol getSymbolRes() {
         return symbolRes;
+    }
+
+    public String getOrd1() {
+        return ord1;
+    }
+
+    public String getRes() {
+        return res;
+    }
+
+    public String getOrd2() {
+        return ord2;
     }
 }

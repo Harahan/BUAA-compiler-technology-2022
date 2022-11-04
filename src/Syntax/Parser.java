@@ -263,21 +263,24 @@ public class Parser {
      */
     public InitVal parseInitVal() {
         InitVal initVal;
-        if (getType(now) != Type.LBRACE) {
+        if (getType(now) == Type.IDENFR || getType(now) == Type.LPARENT || getType(now) == Type.INTCON
+                || getType(now) == Type.PLUS || getType(now) == Type.MINU || getType(now) == Type.NOT) {
             initVal = new InitExp(parseExp(), false);
             return initVal;
         }
         initVal = new InitArr(now, false);
+        peek();
         while (getType(now) != Type.RBRACE) {
-            peek();
             ((InitArr) initVal).addVar(parseInitVal());
             if (getType(now) == Type.COMMA) ((InitArr) initVal).addComma(now);
-            else if (getType(now) == Type.RBRACE) ((InitArr) initVal).setRBTK(now);
+            else if (getType(now) == Type.RBRACE) break;
             else {
                 System.out.println("parseInitVal error!");
                 System.exit(-1);
             }
+            peek();
         }
+        ((InitArr) initVal).setRBTK(now);
         peek();
         return initVal;
     }
