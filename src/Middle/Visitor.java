@@ -42,7 +42,7 @@ public class Visitor {
 
     public static SymbolTable global;
     public static HashMap<String, Symbol> str2Symbol = new HashMap<>();
-    private static HashMap<Integer, Integer> blockLevelNum = new HashMap<>();
+    private static final HashMap<Integer, Integer> blockLevelNum = new HashMap<>();
     private final Stack<String> whileBeginEndLabelStack = new Stack<>();
 
     public Visitor(CompUnit compUnit) {

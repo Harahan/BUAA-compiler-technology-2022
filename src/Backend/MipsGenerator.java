@@ -24,8 +24,6 @@ public class MipsGenerator {
     public static final ArrayList<String> mipsCodeList = new ArrayList<>();
     private final ArrayList<ArrayList<Code>> funcList = new ArrayList<>();
     private ArrayList<Code> mainList = new ArrayList<>();
-    private Stack<HashMap<String, Pair<Symbol, Integer>>> regsStack = new Stack<>();
-    private static int p = 0;
     private final HashMap<Symbol, Integer> globalArrAddr = new HashMap<>();
     // private int pos = 0;
     // private int dataAdd = 0x10010000;
@@ -361,7 +359,6 @@ public class MipsGenerator {
                 case GE: ans = (intOrd1 >= intOrd2 ? 1 : 0); break;
                 case LT: ans = (intOrd1 < intOrd2 ? 1 : 0); break;
                 case LE: ans = (intOrd1 <= intOrd2 ? 1 : 0); break;
-                case NOT: ans = (intOrd1 == 0 ? 1 : 0); break;
             }
             mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, ans)));
         } else {
@@ -543,7 +540,6 @@ public class MipsGenerator {
         Stack<Func> callFunc = new Stack<>();
         Stack<ArrayList<Pair<Pair<Symbol, String>, Boolean>>> paramsStack = new Stack<>();
         for (int i = 1; i < funCodeList.size(); ++i) {
-            //
              mipsCodeList.add("\n#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
