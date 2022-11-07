@@ -554,7 +554,7 @@ public class MipsGenerator {
             } else if (op == Code.Op.ASSIGN) {
                 if (Objects.equals(ord1, "(RT)")) ord1 = "$v0";
                 saveLVal(ord1, res);
-                // if (ord1 == "$v0") System.out.println(mipsCodeList);
+                // !!! 写回内存
                 if (code.getSymbolRes() != null && code.getSymbolRes().getDim() == 0 && code.getSymbolRes().getBlockLevel() == 0) {
                     String reg = RegAlloc.find(code.getSymbolRes(), 0);
                     if (reg != null) pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);

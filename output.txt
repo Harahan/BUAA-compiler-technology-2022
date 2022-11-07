@@ -1,46 +1,7 @@
 INTTK int
-<FuncType>
-IDENFR add
-LPARENT (
-INTTK int
-IDENFR a
-<FuncFParam>
-COMMA ,
-INTTK int
-IDENFR b
-<FuncFParam>
-<FuncFParams>
-RPARENT )
-LBRACE {
-RETURNTK return
-IDENFR a
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-PLUS +
-IDENFR b
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-SEMICN ;
-<Stmt>
-RBRACE }
-<Block>
-<FuncDef>
-INTTK int
-MAINTK main
-LPARENT (
-RPARENT )
-LBRACE {
-INTTK int
-IDENFR a
+IDENFR global_var
 ASSIGN =
-INTCON 3
+INTCON 1
 <Number>
 <PrimaryExp>
 <UnaryExp>
@@ -52,7 +13,24 @@ INTCON 3
 SEMICN ;
 <VarDecl>
 INTTK int
-IDENFR b
+MAINTK main
+LPARENT (
+RPARENT )
+LBRACE {
+INTTK int
+IDENFR i
+ASSIGN =
+INTCON 1
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+<InitVal>
+<VarDef>
+COMMA ,
+IDENFR j
 ASSIGN =
 INTCON 2
 <Number>
@@ -65,88 +43,61 @@ INTCON 2
 <VarDef>
 SEMICN ;
 <VarDecl>
-PRINTFTK printf
-LPARENT (
-STRCON "%d"
-COMMA ,
-IDENFR add
-LPARENT (
-IDENFR add
-LPARENT (
-IDENFR a
+IDENFR i
+<LVal>
+ASSIGN =
+IDENFR global_var
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR j
 <LVal>
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
 <Exp>
-COMMA ,
-IDENFR b
+SEMICN ;
+<Stmt>
+IDENFR j
+<LVal>
+ASSIGN =
+IDENFR global_var
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i
 <LVal>
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
 <Exp>
-<FuncRParams>
-RPARENT )
+SEMICN ;
+<Stmt>
+IDENFR global_var
+<LVal>
+ASSIGN =
+IDENFR i
+<LVal>
+<PrimaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
-<Exp>
-COMMA ,
-IDENFR add
-LPARENT (
-IDENFR a
+PLUS +
+IDENFR j
 <LVal>
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
 <Exp>
-COMMA ,
-IDENFR add
-LPARENT (
-IDENFR a
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR b
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-MULT *
-IDENFR a
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-<FuncRParams>
-RPARENT )
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-<FuncRParams>
-RPARENT )
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-<FuncRParams>
-RPARENT )
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-RPARENT )
 SEMICN ;
 <Stmt>
 RETURNTK return

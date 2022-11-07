@@ -42,7 +42,7 @@ public class Compiler {
             write(parser.toString(), "output.txt");
         } else {
             write(ErrorTable.printError(), "error.txt");
-            return;
+            // return;
         }
         write(MidCodeList.printMidCode(), "midCode.txt");
         write(new MipsGenerator().printMipsCode(), "mips.txt");

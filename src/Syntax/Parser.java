@@ -706,7 +706,7 @@ public class Parser {
             peek();
             return new PrimaryExp(new Number(pre));
         } else {
-            //deBug();
+            // deBug();
             System.out.println("parsePrimaryExp error!");
             System.exit(-1);
         }
