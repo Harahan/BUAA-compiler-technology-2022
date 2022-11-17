@@ -45,7 +45,7 @@ public class Instruction {
             add, addu, sub, subu, slt, sltu, seq, sgt, sne, sge, sle,
             sllv, srlv,
             srav,
-            and, or, xor, nor, mul,
+            and, or, xor, nor, mul, mulu,
         }
 
         private final String rs;
@@ -68,7 +68,7 @@ public class Instruction {
 
     static public class MM {
         public enum Op {
-            mult, multu, div, divu, move,
+            mult, multu, div, divu, move, neg,
         }
 
         private final String rs;

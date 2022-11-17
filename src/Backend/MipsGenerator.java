@@ -2,6 +2,7 @@ package Backend;
 
 import Backend.Util.Instruction;
 import Backend.Util.RegAlloc;
+import Backend.Optimization.*;
 import Middle.MidCodeList;
 import Middle.Util.Code;
 import Middle.Visitor;
@@ -21,6 +22,10 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 
 public class MipsGenerator {
+    HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
+        put("MulDiv", true);
+    }};
+
     public static final ArrayList<String> mipsCodeList = new ArrayList<>();
     private final ArrayList<ArrayList<Code>> funcList = new ArrayList<>();
     private ArrayList<Code> mainList = new ArrayList<>();
@@ -362,6 +367,55 @@ public class MipsGenerator {
             }
             mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, ans)));
         } else {
+
+            // mul optimize
+            if (op == Code.Op.MUL && optimize.get("MulDiv")) {
+                boolean tag = false;
+                Symbol symbolVal = null;
+                String val = null;
+                Integer num = null;
+                if (symbolOrd1 == null) {
+                    num = Integer.valueOf(ord1);
+                    symbolVal = symbolOrd2;
+                    val = ord2;
+                    tag = true;
+                } else if (symbolOrd2 == null) {
+                    num = Integer.valueOf(ord2);
+                    symbolVal =symbolOrd1;
+                    val = ord1;
+                    tag = true;
+                }
+
+                if (tag) {
+                    if (num == 0) {
+                        mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, 0)));
+                        return;
+                    }
+                    String x = RegAlloc.find(symbolVal, 0);
+                    if (x == null) {
+                        x = RegAlloc.mandatoryAllocOne(regRes, symbolVal, 0, false);
+                        loadLVal(x, val);
+                        RegAlloc.mandatorySet(x, symbolVal, 0);
+                    }
+                    mipsCodeList.addAll(MulDiv.mul(regRes, x, num, 4));
+                    return;
+                }
+            }
+
+            // div optimize
+            if ((op == Code.Op.DIV || op == Code.Op.MOD) && symbolOrd2 == null && optimize.get("MulDiv")) {
+                int d = Integer.parseInt(ord2);
+                String x = RegAlloc.find(symbolOrd1, 0);
+                if (x == null) {
+                    x = RegAlloc.mandatoryAllocOne(regRes, symbolOrd1, 0, false);
+                    loadLVal(x, ord1);
+                    RegAlloc.mandatorySet(x, symbolOrd1, 0);
+                }
+                mipsCodeList.addAll(MulDiv.div(regRes, x, d, 50, op == Code.Op.DIV));
+                return;
+            }
+
+
             // 零维变量 @ 零维变量
             String regOrd1, regOrd2 = null;
             // ord1
@@ -411,6 +465,8 @@ public class MipsGenerator {
                 case LT: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.slt, regRes, regOrd1, regOrd2)));break;
                 case LE: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sle, regRes, regOrd1, regOrd2))); break;
             }
+            // 防止regOrd1 或者 regOrd2 覆盖了 regRes
+            RegAlloc.mandatorySet(regRes, symbolRes, 0);
         }
     }
 

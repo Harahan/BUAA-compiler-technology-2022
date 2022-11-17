@@ -8,11 +8,14 @@ import Syntax.Parser;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 
 import Error.ErrorTable;
 
 public class Compiler {
+
     private static String read(String path) {
         File file = new File(path);
         byte[] bytes = new byte[(int) file.length()];
@@ -42,9 +45,9 @@ public class Compiler {
             write(parser.toString(), "output.txt");
         } else {
             write(ErrorTable.printError(), "error.txt");
-            // return;
+            return;
         }
-        write(MidCodeList.printMidCode(), "midCode.txt");
+        write(MidCodeList.printMidCode(), "ir.txt");
         write(new MipsGenerator().printMipsCode(), "mips.txt");
     }
 }

@@ -1,40 +1,17 @@
 INTTK int
-IDENFR global_var
-ASSIGN =
-INTCON 1
-<Number>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-<InitVal>
-<VarDef>
-SEMICN ;
-<VarDecl>
-INTTK int
 MAINTK main
 LPARENT (
 RPARENT )
 LBRACE {
 INTTK int
-IDENFR i
+IDENFR a
 ASSIGN =
-INTCON 1
+MINU -
+<UnaryOp>
+INTCON 518323062
 <Number>
 <PrimaryExp>
 <UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-<InitVal>
-<VarDef>
-COMMA ,
-IDENFR j
-ASSIGN =
-INTCON 2
-<Number>
-<PrimaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
@@ -43,61 +20,24 @@ INTCON 2
 <VarDef>
 SEMICN ;
 <VarDecl>
-IDENFR i
-<LVal>
-ASSIGN =
-IDENFR global_var
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-PLUS +
-IDENFR j
+PRINTFTK printf
+LPARENT (
+STRCON "%d\n"
+COMMA ,
+IDENFR a
 <LVal>
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
-<AddExp>
-<Exp>
-SEMICN ;
-<Stmt>
-IDENFR j
-<LVal>
-ASSIGN =
-IDENFR global_var
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-PLUS +
-IDENFR i
-<LVal>
+MOD %
+INTCON 1996325548
+<Number>
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
 <Exp>
-SEMICN ;
-<Stmt>
-IDENFR global_var
-<LVal>
-ASSIGN =
-IDENFR i
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-PLUS +
-IDENFR j
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
+RPARENT )
 SEMICN ;
 <Stmt>
 RETURNTK return

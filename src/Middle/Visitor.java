@@ -599,7 +599,12 @@ public class Visitor {
         } else if (innerUnaryExp != null) {
             String ord = unaryExpTravel(innerUnaryExp);
             Token op = unaryExp.getUnaryOp();
-            if (op.getType() != Type.NOT) return MidCodeList.add(unaryExp.getUnaryOp().getType() == Type.MINU ? Code.Op.SUB : Code.Op.ADD, "0", ord, "(AUTO)");
+            try {
+                Integer x = Integer.parseInt(ord);
+                return op.getType() == Type.MINU ? Integer.toString(-x) :
+                                        op.getType() == Type.PLUS ? Integer.toString(x) : (x == 0 ? "1" : "0");
+            } catch (Exception ignore) {}
+            if (op.getType() != Type.NOT) return MidCodeList.add(op.getType() == Type.MINU ? Code.Op.SUB : Code.Op.ADD, "0", ord, "(AUTO)");
             else return MidCodeList.add(Code.Op.NOT, ord, "(EMPTY)", "(AUTO)");
         } else {
 
@@ -626,9 +631,16 @@ public class Visitor {
         String res = ord1;
         for (int i = 0; i < mulExp.getTs().size(); ++i) {
             String ord2 = unaryExpTravel(mulExp.getTs().get(i));
-            Code.Op op = mulExp.getOperators().get(i).getType() == Type.MULT ? Code.Op.MUL:
-                    mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : Code.Op.MOD;
-            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            try {
+                Integer x = Integer.parseInt(ord1);
+                Integer y = Integer.parseInt(ord2);
+                res = mulExp.getOperators().get(i).getType() == Type.MULT ? Integer.toString(x * y) :
+                        mulExp.getOperators().get(i).getType() == Type.DIV ? Integer.toString(x / y) : Integer.toString(x % y);
+            } catch (Exception ignore) {
+                Code.Op op = mulExp.getOperators().get(i).getType() == Type.MULT ? Code.Op.MUL :
+                        mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : Code.Op.MOD;
+                res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            }
             ord1 = res;
         }
         return res;
@@ -640,8 +652,14 @@ public class Visitor {
         String res = ord1;
         for (int i = 0; i < addExp.getTs().size(); ++i) {
             String ord2 = mulExpTravel(addExp.getTs().get(i));
-            Code.Op op = addExp.getOperators().get(i).getType() == Type.PLUS ? Code.Op.ADD : Code.Op.SUB;
-            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            try {
+                Integer x = Integer.parseInt(ord1);
+                Integer y = Integer.parseInt(ord2);
+                res = addExp.getOperators().get(i).getType() == Type.PLUS ? Integer.toString(x + y) : Integer.toString(x - y);
+            } catch (Exception ignore) {
+                Code.Op op = addExp.getOperators().get(i).getType() == Type.PLUS ? Code.Op.ADD : Code.Op.SUB;
+                res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            }
             ord1 = res;
         }
         return res;
@@ -653,10 +671,18 @@ public class Visitor {
         String res = ord1;
         for (int i = 0; i <  relExp.getTs().size(); ++i) {
             String ord2 = addExpTravel(relExp.getTs().get(i));
-            Code.Op op = relExp.getOperators().get(i).getType() == Type.GRE ? Code.Op.GT :
-                                relExp.getOperators().get(i).getType() == Type.LSS ?  Code.Op.LT :
+            try {
+                int x = Integer.parseInt(ord1);
+                int y = Integer.parseInt(ord2);
+                res = relExp.getOperators().get(i).getType() == Type.LSS ? (x < y ? "1" : "0") :
+                        relExp.getOperators().get(i).getType() == Type.LEQ ? (x <= y ? "1" : "0") :
+                                relExp.getOperators().get(i).getType() == Type.GRE ? (x > y ? "1" : "0") : (x >= y ? "1" : "0");
+            } catch (Exception ignore) {
+                Code.Op op = relExp.getOperators().get(i).getType() == Type.GRE ? Code.Op.GT :
+                        relExp.getOperators().get(i).getType() == Type.LSS ? Code.Op.LT :
                                 relExp.getOperators().get(i).getType() == Type.GEQ ? Code.Op.GE : Code.Op.LE;
-            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+                res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            }
             ord1 = res;
         }
         return res;
@@ -671,8 +697,14 @@ public class Visitor {
         String res = ord1;
         for (int i = 0; i <  eqExp.getTs().size(); ++i) {
             String ord2 = relExpTravel(eqExp.getTs().get(i));
-            Code.Op op = eqExp.getOperators().get(i).getType() == Type.EQL ? Code.Op.EQ : Code.Op.NE;
-            res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            try {
+                int z = Integer.parseInt(ord1);
+                int y = Integer.parseInt(ord2);
+                res = eqExp.getOperators().get(i).getType() == Type.EQL ? (z == y ? "1" : "0") : (z != y ? "1" : "0");
+            } catch (Exception ignore) {
+                Code.Op op = eqExp.getOperators().get(i).getType() == Type.EQL ? Code.Op.EQ : Code.Op.NE;
+                res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
+            }
             ord1 = res;
         }
         if (ok) MidCodeList.add(Code.Op.NEZ_JUMP, res,  "(EMPTY)", "(LABEL" + x + ")");
