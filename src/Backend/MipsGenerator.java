@@ -120,7 +120,7 @@ public class MipsGenerator {
             if (addReg == null) {
                 // System.out.println(sym);
                 // 不在寄存器中
-                addReg = RegAlloc.mandatoryAllocOne(sym, 0, true);
+                addReg = RegAlloc.mandatoryAllocOne(reg, sym, 0, true);
                 mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.lw, addReg, null, sym.getAddr(), "$sp")));
             }
             // System.out.println(reg + " " + sym);
@@ -138,7 +138,7 @@ public class MipsGenerator {
     public static void pushBackOrLoadFromMem(String reg, Symbol sym, Symbol off, Instruction.LS.Op op) {
         String tmpReg = RegAlloc.find(off, 0);
         if (tmpReg == null) {
-            tmpReg = RegAlloc.mandatoryAllocOne(off, 0, true);
+            tmpReg = RegAlloc.mandatoryAllocOne(reg, off, 0, true);
             pushBackOrLoadFromMem(tmpReg, off, 0, Instruction.LS.Op.lw);
         }
         mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.sll, "$a1", tmpReg, 2)));
@@ -160,7 +160,7 @@ public class MipsGenerator {
             String addReg = RegAlloc.find(sym, 0);
             if (addReg == null) {
                 // 不在寄存器中
-                addReg = RegAlloc.mandatoryAllocOne(sym, 0, true);
+                addReg = RegAlloc.mandatoryAllocOne(reg, sym, 0, true);
                 mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.lw, addReg, null, sym.getAddr(), "$sp")));
             }
             mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.addu, tmpReg, tmpReg, addReg)));
