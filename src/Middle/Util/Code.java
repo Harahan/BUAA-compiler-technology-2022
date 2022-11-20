@@ -34,7 +34,7 @@ public class Code {
 
         // FUNC
         FUNC("func"), //FUNC VAR (EMPTY) (EMPTY)
-        FUNC_END("func_end"), //FUNC VAR (EMPTY) (EMPTY)
+        FUNC_END("func_end"), //FUNC_END VAR (EMPTY) (EMPTY)
         PREPARE_CALL("prepare_call"), // PREPARE_CALL VAR (EMPTY) (EMPTY)
         CALL("call"), //FUNC VAR (EMPTY) (EMPTY)
         PUSH_PAR_INT("push_para_int"), // PUSH_PAR_INT VAR (EMPTY) (EMPTY)
@@ -142,8 +142,8 @@ public class Code {
         if (func.contains(instr)) {
             if (instr == Op.PUSH_PAR_ADDR || instr == Op.PUSH_PAR_INT
                 || instr == Op.PREPARE_CALL || instr == Op.CALL) return instr + " " + ord1;
-            else if (instr == Op.FUNC) return "\n========" + instr + ": " + ord1 + "========";
-            else if (instr == Op.FUNC_END) return "========" + instr + ": " + ord1 + "========\n";
+            else if (instr == Op.FUNC) return "======" + instr + ": " + ord1 + "======";
+            else if (instr == Op.FUNC_END) return "======" + instr + ": " + ord1 + "======";
             else if (instr == Op.RETURN && Objects.equals(ord1, "(EMPTY)")) return instr.toString();
             else if (instr == Op.RETURN) return instr + " " + ord1;
         }

@@ -292,7 +292,7 @@ public class Visitor {
            curTable = new SymbolTable(curTable, blockLevel, blockLevelNum.getOrDefault(blockLevel, 0) + 1, false);
            blockLevelNum.merge(blockLevel, 1, Integer::sum);
            curTable.getFa().add(curTable);
-           MidCodeList.add(Code.Op.BLOCK_BEGIN, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
+           // MidCodeList.add(Code.Op.BLOCK_BEGIN, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
        }
 
        for (Block.BlockItem blockItem : blockItems) {
@@ -301,7 +301,7 @@ public class Visitor {
        }
 
        if (!isFunc) {
-           MidCodeList.add(Code.Op.BLOCK_END, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
+           // MidCodeList.add(Code.Op.BLOCK_END, curTable.getNickName(), "(EMPTY)", "(EMPTY)");
            back();
        }
     }
@@ -535,6 +535,9 @@ public class Visitor {
 
             // e
             ArrayList<Symbol> symbols = new ArrayList<Symbol>(func.getFuncTable().getOrderSymbols().subList(0, func.getNum())); // 形参
+            ArrayList<String> params = new ArrayList<>();
+            ArrayList<Boolean> addr = new ArrayList<>();
+
             // System.out.println(symbols);
             int dim = first.getFormDim();
             if (dim != -10000 && dim != symbols.get(0).getDim()) {
@@ -543,7 +546,9 @@ public class Visitor {
             } else if (dim == -10000) {
                 return;
             }
-            MidCodeList.add(symbols.get(0).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
+            //MidCodeList.add(symbols.get(0).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
+            params.add(param);
+            addr.add(symbols.get(0).getDim() != 0);
             // System.out.println(funcRParams.getExps().size());
 
             for (int i = 0; i < funcRParams.getExps().size(); ++i) {
@@ -559,7 +564,12 @@ public class Visitor {
                 } else if (dim == -10000) {
                     return;
                 }
-                MidCodeList.add(symbols.get(i + 1).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
+                // MidCodeList.add(symbols.get(i + 1).getDim() != 0 ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, param, "(EMPTY)", "(EMPTY)");
+                params.add(param);
+                addr.add(symbols.get(i + 1).getDim() != 0);
+            }
+            for (int i = 0; i < params.size(); ++i) {
+                MidCodeList.add(addr.get(i) ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, params.get(i), "(EMPTY)", "(EMPTY)");
             }
 
         } else {
@@ -707,8 +717,19 @@ public class Visitor {
             }
             ord1 = res;
         }
-        if (ok) MidCodeList.add(Code.Op.NEZ_JUMP, res,  "(EMPTY)", "(LABEL" + x + ")");
-        else MidCodeList.add(Code.Op.EQZ_JUMP, res, "(EMPTY)","(LABEL" + x + ")");
+        if (ok) {
+            try {
+                if (Integer.parseInt(res) != 0) MidCodeList.add(Code.Op.JUMP, "(LABEL" + x + ")", "(EMPTY)", "(EMPTY)");
+            } catch (Exception ignore) {
+                MidCodeList.add(Code.Op.NEZ_JUMP, res, "(EMPTY)", "(LABEL" + x + ")");
+            }
+        } else {
+            try {
+                if (Integer.parseInt(res) == 0) MidCodeList.add(Code.Op.JUMP, "(LABEL" + x + ")", "(EMPTY)", "(EMPTY)");
+            } catch (Exception ignore) {
+                MidCodeList.add(Code.Op.EQZ_JUMP, res, "(EMPTY)", "(LABEL" + x + ")");
+            }
+        }
     }
 
     // 满足跳 x, ok = true

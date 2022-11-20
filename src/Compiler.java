@@ -1,6 +1,7 @@
 import Backend.MipsGenerator;
 import Lexer.Lexer;
 import Middle.MidCodeList;
+import Middle.Optimization.DataFlow;
 import Middle.Util.Code;
 import Middle.Visitor;
 import Syntax.Parser;
@@ -47,6 +48,7 @@ public class Compiler {
             write(ErrorTable.printError(), "error.txt");
             return;
         }
+        // new DataFlow(MidCodeList.codes).printGraph();
         write(MidCodeList.printMidCode(), "ir.txt");
         write(new MipsGenerator().printMipsCode(), "mips.txt");
     }

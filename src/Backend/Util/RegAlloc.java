@@ -70,7 +70,10 @@ public class RegAlloc {
         Pair<Symbol, Integer> p = regMap.get(reg);
         if (p != null && !(p.getKey() instanceof Num)) {
             regMap.put(reg, null);
-            if (!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
+            if (!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) {
+                MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
+                MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
+            }
         }
         if (set) {
             regMap.put(reg, new Pair<>(sym, off));

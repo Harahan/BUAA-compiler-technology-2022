@@ -30,11 +30,15 @@ public class MipsGenerator {
     private final ArrayList<ArrayList<Code>> funcList = new ArrayList<>();
     private ArrayList<Code> mainList = new ArrayList<>();
     private final HashMap<Symbol, Integer> globalArrAddr = new HashMap<>();
+    public static HashMap<String, Integer> tmpVal2Used = new HashMap<>();
     // private int pos = 0;
     // private int dataAdd = 0x10010000;
 
     public MipsGenerator() {
         ArrayList<Code> codes = MidCodeList.codes;
+        for (String tmpName : Visitor.str2Symbol.keySet()) {
+            if (tmpName.startsWith("(T")) tmpVal2Used.put(tmpName, 0);
+        }
         for (int i = 0; i < codes.size(); ++i) {
             if (codes.get(i).getInstr() == Code.Op.FUNC) {
                 String name = codes.get(i).getOrd1();
@@ -82,6 +86,15 @@ public class MipsGenerator {
     // off为数字
     // gp: - sp: +
     public static void pushBackOrLoadFromMem(String reg, Symbol sym, Integer off, Instruction.LS.Op op) {
+        // 处理临时变量回写，不会有问题
+        // T0 --> a[T1]
+        // xxx
+        // saveRegs 单独处理
+        if (sym instanceof Tmp && tmpVal2Used.get(sym.getName()) >= 2 && op == Instruction.LS.Op.sw) {
+            RegAlloc.refreshOne(reg);
+            return;
+        }
+
         //if (reg == "$v0") System.out.println(sym + " " + sym.getBlockLevel());
         if (sym instanceof Tmp) {
             mipsCodeList.add(String.valueOf(new Instruction.LS(op, reg, null, off + sym.getAddr(), "$sp")));
@@ -529,8 +542,13 @@ public class MipsGenerator {
         for (String reg : used.keySet()) {
             // 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
             Symbol sym = RegAlloc.regMap.get(reg).getKey();
-            if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
-            RegAlloc.refreshOne(reg);
+            if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
+                // 处理临时变量，且该变量使用超过一次
+                if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) >= 2)) {
+                    pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
+                }
+            }
+            if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) >= 2)) RegAlloc.refreshOne(reg);
         }
     }
 
@@ -591,15 +609,20 @@ public class MipsGenerator {
         } else {
             mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.sw, "$ra", null, func.getFuncTable().totSize + 31 * 4, "$sp")));
         }
-        // int paraNum = 0;
+        int paraNum = 0;
         /**函数调用嵌套*/
         Stack<Func> callFunc = new Stack<>();
-        Stack<ArrayList<Pair<Pair<Symbol, String>, Boolean>>> paramsStack = new Stack<>();
+        // Stack<ArrayList<Pair<Pair<Symbol, String>, Boolean>>> paramsStack = new Stack<>();
         for (int i = 1; i < funCodeList.size(); ++i) {
              mipsCodeList.add("\n#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
             String ord1 = code.getOrd1(), ord2 = code.getOrd2(), res = code.getRes();
+
+            // 标记临时变量的使用次数
+            if (ord1.startsWith("(T")) tmpVal2Used.merge(ord1, 1, Integer::sum);
+            if (ord2.startsWith("(T")) tmpVal2Used.merge(ord2, 1, Integer::sum);
+            if (res.startsWith("(T")) tmpVal2Used.merge(res, 1, Integer::sum);
 
             // def: arr_def 和 end_arr_def 直接跳过即可
             if (op == Code.Op.DEF_VAL) {
@@ -630,13 +653,13 @@ public class MipsGenerator {
                 if (op == Code.Op.PREPARE_CALL) {
                     mipsCodeList.add("");
                     callFunc.push((Func) code.getSymbolOrd1());
-                    paramsStack.add(new ArrayList<Pair<Pair<Symbol, String>, Boolean>>());
+                    // paramsStack.add(new ArrayList<Pair<Pair<Symbol, String>, Boolean>>());
                 } else if (op == Code.Op.PUSH_PAR_INT) {
-                    paramsStack.lastElement().add(new Pair<Pair<Symbol, String>, Boolean>(new Pair<Symbol, String>(code.getSymbolOrd1(), ord1), false));
-                    //pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), false, callFunc.lastElement().getFuncTable().totSize);
+                    // paramsStack.lastElement().add(new Pair<Pair<Symbol, String>, Boolean>(new Pair<Symbol, String>(code.getSymbolOrd1(), ord1), false));
+                    pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), false, callFunc.lastElement().getFuncTable().totSize);
                 } else if (op == Code.Op.PUSH_PAR_ADDR) {
-                    paramsStack.lastElement().add(new Pair<Pair<Symbol, String>, Boolean>(new Pair<Symbol, String>(code.getSymbolOrd1(), ord1), true));
-                    // pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), true, callFunc.lastElement().getFuncTable().totSize);
+                    // paramsStack.lastElement().add(new Pair<Pair<Symbol, String>, Boolean>(new Pair<Symbol, String>(code.getSymbolOrd1(), ord1), true));
+                    pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), true, callFunc.lastElement().getFuncTable().totSize);
                 } else if (op == Code.Op.RETURN) {
                     if (func.getName().startsWith("main")) {
                         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$v0", 10)));
@@ -645,11 +668,11 @@ public class MipsGenerator {
                         returnFromFunc(ord1, func.getFuncTable().totSize);
                     }
                 } else if (op == Code.Op.CALL) {
-                    int paraNum = 0;
-                    ArrayList<Pair<Pair<Symbol, String>, Boolean>> params = paramsStack.pop();
-                    for (Pair<Pair<Symbol, String>, Boolean> p : params) {
-                        pushIntoStack(paraNum++, p.getKey().getValue(), p.getKey().getKey(), p.getValue(), callFunc.lastElement().getFuncTable().totSize);
-                    }
+                    paraNum = 0;
+                    //ArrayList<Pair<Pair<Symbol, String>, Boolean>> params = paramsStack.pop();
+                    //for (Pair<Pair<Symbol, String>, Boolean> p : params) {
+                    //    pushIntoStack(paraNum++, p.getKey().getValue(), p.getKey().getKey(), p.getValue(), callFunc.lastElement().getFuncTable().totSize);
+                    //}
                     saveRegs();
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", -callFunc.lastElement().getFuncTable().totSize - 32 * 4)));
                     mipsCodeList.add("jal " +  getName(callFunc.lastElement()));
@@ -678,6 +701,20 @@ public class MipsGenerator {
                     // saveRegs();
                     mipsCodeList.add(ord1.substring(1, ord1.length() - 1) + ":");
                 }
+            }
+
+            // 释放临时变量所占据的寄存器
+            if (ord1.startsWith("(T") && tmpVal2Used.get(ord1) >= 2) {
+                String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
+                if (reg != null) RegAlloc.refreshOne(reg);
+            }
+            if (ord2.startsWith("(T") && tmpVal2Used.get(ord2) >= 2) {
+                String reg = RegAlloc.find(code.getSymbolOrd2(), 0);
+                if (reg != null) RegAlloc.refreshOne(reg);
+            }
+            if (res.startsWith("(T") && tmpVal2Used.get(res) >= 2) {
+                String reg = RegAlloc.find(code.getSymbolRes(), 0);
+                if (reg != null) RegAlloc.refreshOne(reg);
             }
         }
     }

@@ -43,7 +43,6 @@ public class MulDiv {
         // low 溢出故用 long
         // (((long) 1) << (N + l)) / d 溢出故用
         long low = (long) Math.floor(Math.pow(2, N + l) / d);
-        // System.out.println(((long) 1) << (N + l));
         long high = (long) Math.floor((Math.pow(2, N + l) + Math.pow(2, N + l - p)) / d);
         while ((low >> 1) < (high >> 1) && sh > 0) {
             low >>= 1;
