@@ -358,7 +358,7 @@ public class MipsGenerator {
         if (regRes == null) {
             regRes = RegAlloc.mandatoryAllocOne(symbolRes, 0, false);
             //loadLVal(regRes, res);
-            RegAlloc.mandatorySet(regRes, symbolRes, 0);
+            // RegAlloc.mandatorySet(regRes, symbolRes, 0);
         }
 
         if (symbolOrd1 == null && symbolOrd2 == null && op != Code.Op.NOT) {
@@ -402,6 +402,7 @@ public class MipsGenerator {
                 if (tag) {
                     if (num == 0) {
                         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, 0)));
+                        RegAlloc.mandatorySet(regRes, symbolRes, 0);
                         return;
                     }
                     String x = RegAlloc.find(symbolVal, 0);
@@ -411,6 +412,7 @@ public class MipsGenerator {
                         RegAlloc.mandatorySet(x, symbolVal, 0);
                     }
                     mipsCodeList.addAll(MulDiv.mul(regRes, x, num, 4));
+                    RegAlloc.mandatorySet(regRes, symbolRes, 0);
                     return;
                 }
             }
@@ -425,6 +427,7 @@ public class MipsGenerator {
                     RegAlloc.mandatorySet(x, symbolOrd1, 0);
                 }
                 mipsCodeList.addAll(MulDiv.div(regRes, x, d, 50, op == Code.Op.DIV));
+                RegAlloc.mandatorySet(regRes, symbolRes, 0);
                 return;
             }
 
@@ -478,9 +481,9 @@ public class MipsGenerator {
                 case LT: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.slt, regRes, regOrd1, regOrd2)));break;
                 case LE: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sle, regRes, regOrd1, regOrd2))); break;
             }
-            // 防止regOrd1 或者 regOrd2 覆盖了 regRes
-            RegAlloc.mandatorySet(regRes, symbolRes, 0);
         }
+        // 防止regOrd1 或者 regOrd2 覆盖了 regRes
+        RegAlloc.mandatorySet(regRes, symbolRes, 0);
     }
 
     /** 传值不会是数组变量
