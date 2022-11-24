@@ -28,7 +28,7 @@ public class Code {
         LE("<="), // LE VAR VAR VAR
 
         // IO
-        GET_INT("getInt"), // GET_INT (EMPTY) (EMPTY) VAR
+        GET_INT("get_int"), // GET_INT (EMPTY) (EMPTY) VAR
         PRINT_STR("print_str"), // PRINT_STR STR (EMPTY) (EMPTY)
         PRINT_INT("print_int"), // PRINT_INT VAR (EMPTY) (EMPTY)
 
@@ -181,5 +181,31 @@ public class Code {
 
     public String getOrd2() {
         return ord2;
+    }
+
+
+    public Symbol getDef() {
+        // array or call are not take into consideration
+        if ((alu.contains(instr) || instr == Op.DEF_VAL || instr == Op.GET_INT) && symbolRes != null && symbolRes.getDim() == 0) return symbolRes;
+        return null;
+    }
+
+    public HashSet<Symbol> getUse() {
+        // array, call and return value are not take into consideration
+        HashSet<Symbol> use = new HashSet<>();
+        if (alu.contains(instr) || io.contains(instr) || jump.contains(instr) || def.contains(instr)) {
+            if (symbolOrd1 != null && symbolOrd1.getDim() == 0) use.add(symbolOrd1);
+            if (symbolOrd2 != null && symbolOrd2.getDim() == 0) use.add(symbolOrd2);
+        }
+        if ((instr == Op.PUSH_PAR_INT || instr == Op.RETURN) && symbolOrd1 != null && symbolOrd1.getDim() == 0) use.add(symbolOrd1);
+        return use;
+    }
+
+    public Symbol getGen() {
+        // array, call and return value are not take into consideration
+        if (alu.contains(instr) || io.contains(instr) || def.contains(instr)) {
+            if (symbolRes != null && symbolRes.getDim() == 0) return symbolRes;
+        }
+        return null;
     }
 }

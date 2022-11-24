@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MipsGenerator {
     HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
@@ -31,13 +32,20 @@ public class MipsGenerator {
     private ArrayList<Code> mainList = new ArrayList<>();
     private final HashMap<Symbol, Integer> globalArrAddr = new HashMap<>();
     public static HashMap<String, Integer> tmpVal2Used = new HashMap<>();
+
+    public static final Pattern tempPattern = Pattern.compile(".*\\(T(\\d+)\\).*");
     // private int pos = 0;
     // private int dataAdd = 0x10010000;
 
     public MipsGenerator() {
         ArrayList<Code> codes = MidCodeList.codes;
-        for (String tmpName : Visitor.str2Symbol.keySet()) {
-            if (tmpName.startsWith("(T")) tmpVal2Used.put(tmpName, 0);
+        for (Code code : codes) {
+            String ord1 = hasTmp(code.getOrd1());
+            String ord2 = hasTmp(code.getOrd2());
+            String res = hasTmp(code.getRes());
+            if (ord1 != null) tmpVal2Used.merge(ord1, 1, Integer::sum);
+            if (ord2 != null) tmpVal2Used.merge(ord2, 1, Integer::sum);
+            if (res != null) tmpVal2Used.merge(res, 1, Integer::sum);
         }
         for (int i = 0; i < codes.size(); ++i) {
             if (codes.get(i).getInstr() == Code.Op.FUNC) {
@@ -57,6 +65,14 @@ public class MipsGenerator {
 
     public static String getName(Symbol sym) {
         return sym.getName() + "_" + sym.getBlockLevel() + "_" + sym.getBlockNum();
+    }
+
+    public static String hasTmp(String var) {
+        Matcher matcher = tempPattern.matcher(var);
+        if (matcher.matches()) {
+            return "(T" + matcher.group(1) + ")";
+        }
+        return null;
     }
 
     public int setOff(SymbolTable nd, int off) {
@@ -90,7 +106,7 @@ public class MipsGenerator {
         // T0 --> a[T1]
         // xxx
         // saveRegs 单独处理
-        if (sym instanceof Tmp && tmpVal2Used.get(sym.getName()) >= 2 && op == Instruction.LS.Op.sw) {
+        if (sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0 && op == Instruction.LS.Op.sw) {
             RegAlloc.refreshOne(reg);
             return;
         }
@@ -487,7 +503,7 @@ public class MipsGenerator {
     }
 
     /** 传值不会是数组变量
-    * 栈针还是当前函数
+     * 栈针还是当前函数
      * 注意如果是该函数形参压栈 ！！！
      * */
     public void pushIntoStack(Integer cnt, String param, Symbol paramSymbol, boolean isAdd, Integer funSize) {
@@ -512,7 +528,7 @@ public class MipsGenerator {
             } else {
                 mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, "$a1", "$zero")));
             }
-           int blockLevel = paramSymbol.getBlockLevel();
+            int blockLevel = paramSymbol.getBlockLevel();
             /* 如果是该函数形参 ！！！*/
             if (paramSymbol instanceof FuncFormParam) {
                 String addReg = RegAlloc.find(paramSymbol, 0);
@@ -547,11 +563,11 @@ public class MipsGenerator {
             Symbol sym = RegAlloc.regMap.get(reg).getKey();
             if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
                 // 处理临时变量，且该变量使用超过一次
-                if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) >= 2)) {
+                if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
                     pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
                 }
             }
-            if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) >= 2)) RegAlloc.refreshOne(reg);
+            if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
         }
     }
 
@@ -617,15 +633,18 @@ public class MipsGenerator {
         Stack<Func> callFunc = new Stack<>();
         // Stack<ArrayList<Pair<Pair<Symbol, String>, Boolean>>> paramsStack = new Stack<>();
         for (int i = 1; i < funCodeList.size(); ++i) {
-             mipsCodeList.add("\n#" + funCodeList.get(i));
+            mipsCodeList.add("\n#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
             String ord1 = code.getOrd1(), ord2 = code.getOrd2(), res = code.getRes();
 
             // 标记临时变量的使用次数
-            if (ord1.startsWith("(T")) tmpVal2Used.merge(ord1, 1, Integer::sum);
-            if (ord2.startsWith("(T")) tmpVal2Used.merge(ord2, 1, Integer::sum);
-            if (res.startsWith("(T")) tmpVal2Used.merge(res, 1, Integer::sum);
+            String o1 = hasTmp(ord1);
+            String o2 = hasTmp(ord2);
+            String r = hasTmp(res);
+            if (o1 != null) tmpVal2Used.merge(o1, -1, Integer::sum);
+            if (o2 != null) tmpVal2Used.merge(o2, -1, Integer::sum);
+            if (r != null) tmpVal2Used.merge(r, -1, Integer::sum);
 
             // def: arr_def 和 end_arr_def 直接跳过即可
             if (op == Code.Op.DEF_VAL) {
@@ -707,15 +726,15 @@ public class MipsGenerator {
             }
 
             // 释放临时变量所占据的寄存器
-            if (ord1.startsWith("(T") && tmpVal2Used.get(ord1) >= 2) {
+            if (o1 != null && tmpVal2Used.get(o1) == 0) {
                 String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
                 if (reg != null) RegAlloc.refreshOne(reg);
             }
-            if (ord2.startsWith("(T") && tmpVal2Used.get(ord2) >= 2) {
+            if (o2 != null && tmpVal2Used.get(o2) == 0) {
                 String reg = RegAlloc.find(code.getSymbolOrd2(), 0);
                 if (reg != null) RegAlloc.refreshOne(reg);
             }
-            if (res.startsWith("(T") && tmpVal2Used.get(res) >= 2) {
+            if (r != null && tmpVal2Used.get(r) == 0) {
                 String reg = RegAlloc.find(code.getSymbolRes(), 0);
                 if (reg != null) RegAlloc.refreshOne(reg);
             }

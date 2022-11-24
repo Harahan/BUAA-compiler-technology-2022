@@ -48,7 +48,7 @@ public class Compiler {
             write(ErrorTable.printError(), "error.txt");
             return;
         }
-        // new DataFlow(MidCodeList.codes).printGraph();
+        new DataFlow(MidCodeList.codes);
         write(MidCodeList.printMidCode(), "ir.txt");
         write(new MipsGenerator().printMipsCode(), "mips.txt");
     }

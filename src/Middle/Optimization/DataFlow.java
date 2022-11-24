@@ -2,23 +2,26 @@ package Middle.Optimization;
 
 import Middle.Util.Code;
 import Middle.Util.Code.Op;
+import Symbol.Symbol;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
 public class DataFlow {
-    private final HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
+    private static HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
     private final HashMap<String, ArrayList<Code>> func2codes = new HashMap<>();
     public static HashSet<Op> divider = new HashSet<Op>() {{
         // add(Op.LABEL);
         add(Op.JUMP);
         add(Op.NEZ_JUMP);
         add(Op.EQZ_JUMP);
-        add(Op.RETURN); // nxt --> -1
-        // add(Op.FUNC); // pre --> -1
+        add(Op.RETURN); // exit --> size - 1
+        // add(Op.FUNC); // entry --> 0
     }};
 
     public DataFlow(ArrayList<Code> codes) {
+        func2blocks = new HashMap<>();
         for (int i = 0; i < codes.size(); ++i) {
             if (codes.get(i).getInstr() == Op.FUNC) {
                 String func = codes.get(i).getSymbolOrd1().getNickname();
@@ -29,6 +32,8 @@ public class DataFlow {
             }
         }
         for (String func : func2codes.keySet()) divideBlock(func, func2codes.get(func));
+        for (String func : func2codes.keySet()) arriveDataAnalysis(func);
+        for (String func : func2codes.keySet()) activeDataAnalysis(func);
     }
 
     private void divideBlock(String func, ArrayList<Code> codes) {
@@ -62,41 +67,42 @@ public class DataFlow {
 
         // 生成block
         ArrayList<Block> blocks = new ArrayList<>();
+        // set entry block
+        blocks.add(new Block(0, new ArrayList<>(), func));
         for (int i = 0; i < beginList.size(); ++i) {
-            blocks.add(new Block(i, new ArrayList<Code>(codes.subList(beginList.get(i), endList.get(i) + 1))));
+            blocks.add(new Block(i + 1, new ArrayList<Code>(codes.subList(beginList.get(i), endList.get(i) + 1)), func));
             // label is the beginning of a block
             if (codes.get(beginList.get(i)).getInstr() == Op.LABEL) {
-                labels.put(codes.get(beginList.get(i)).getOrd1(), i);
+                labels.put(codes.get(beginList.get(i)).getOrd1(), i + 1);
             }
         }
-
+        // set exit block
+        blocks.add(new Block(blocks.size(), new ArrayList<>(), func));
 
         // build the graph
         // set nxt
-        for (int i = 0; i < blocks.size(); ++i) {
+        int exit = blocks.size() - 1, entry = 0;
+        blocks.get(entry).getNxt().add(1);
+        for (int i = 1; i < blocks.size() - 1; ++i) {
             Block block = blocks.get(i);
             Code code = block.getCodes().get(block.getCodes().size() - 1);
             Op op = code.getInstr();
             if (op == Op.RETURN) {
-                block.getNxt().add(-1);
+                block.getNxt().add(exit);
             } else if (op == Op.JUMP) {
                 block.getNxt().add(labels.get(code.getOrd1()));
             } else if (op == Op.NEZ_JUMP || op == Op.EQZ_JUMP) {
-                if (i + 1 < blocks.size()) block.getNxt().add(i + 1);
+                if (i + 1 < blocks.size() - 1) block.getNxt().add(i + 1);
                 block.getNxt().add(labels.get(code.getRes()));
             } else {
-                if (i + 1 < blocks.size()) block.getNxt().add(i + 1);
+                if (i + 1 < blocks.size() - 1) block.getNxt().add(i + 1);
             }
         }
         // set pre
-        blocks.get(0).getPre().add(-1);
         for (int i = 0; i < blocks.size(); ++i) {
             Block block = blocks.get(i);
-            for (int nxt : block.getNxt()) {
-                if (nxt != -1) blocks.get(nxt).getPre().add(i);
-            }
+            for (int nxt : block.getNxt()) blocks.get(nxt).getPre().add(i);
         }
-
         func2blocks.put(func, blocks);
     }
 
@@ -109,5 +115,74 @@ public class DataFlow {
             }
         }
         System.out.println();
+    }
+
+
+    // ------------------ arrive data analysis ------------------
+
+    public static HashSet<Block.Meta> prepareKill(String fun, Integer blockId) {
+        ArrayList<Block> blocks = func2blocks.get(fun);
+        HashSet<Block.Meta> kill = new HashSet<>();
+        HashSet<Symbol> genRes = new HashSet<>();
+        blocks.get(blockId).getArriveGen().forEach(meta -> genRes.add(meta.getSymbol()));
+        for (int i = 0; i < blocks.size(); ++i) {
+            if (i == blockId) continue;
+            ArrayList<Code> codes = blocks.get(i).getCodes();
+            for (int j = 0; j < codes.size(); ++j) {
+                Code code = codes.get(j);
+                if (code.getGen() != null && genRes.contains(code.getSymbolRes())) kill.add(new Block.Meta(i, j, code, code.getSymbolRes()));
+            }
+        }
+        return kill;
+    }
+
+    private void arriveDataAnalysis(String fun) {
+        ArrayList<Block> blocks = func2blocks.get(fun);
+        // init
+        for (Block block : blocks) block.calcArriveGenAndKill();
+        // iterate
+        boolean changed;
+        do {
+            changed = false;
+            for (int i = 1; i < blocks.size(); ++i) {
+                Block block = blocks.get(i);
+                HashSet<Block.Meta> in = new HashSet<>();
+                for (int pre : block.getPre()) in.addAll(blocks.get(pre).getArriveOut());
+                HashSet<Block.Meta> out = new HashSet<>(in);
+                out.removeAll(block.getArriveKill());
+                out.addAll(block.getArriveGen());
+                if (!block.getArriveIn().equals(in) || !block.getArriveOut().equals(out)) {
+                    block.setArriveIn(in);
+                    block.setArriveOut(out);
+                    changed = true;
+                }
+            }
+        } while (changed);
+    }
+
+    // ------------------ active data analysis ------------------
+
+    private void activeDataAnalysis(String fun) {
+        ArrayList<Block> blocks = func2blocks.get(fun);
+        // init
+        for (Block block : blocks) block.calcActiveUseAndDef();
+        // iterate
+        boolean changed;
+        do {
+            changed = false;
+            for (int i = blocks.size() - 1; i >= 1; --i) {
+                Block block = blocks.get(i);
+                HashSet<Block.Meta> out = new HashSet<>();
+                for (int nxt : block.getNxt()) out.addAll(blocks.get(nxt).getActiveIn());
+                HashSet<Block.Meta> in = new HashSet<>(out);
+                in.removeAll(block.getActiveDef());
+                in.addAll(block.getActiveUse());
+                if (!block.getActiveIn().equals(in) || !block.getActiveOut().equals(out)) {
+                    block.setActiveIn(in);
+                    block.setActiveOut(out);
+                    changed = true;
+                }
+            }
+        } while (changed);
     }
 }
