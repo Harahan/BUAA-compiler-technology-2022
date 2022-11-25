@@ -9,8 +9,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 public class DataFlow {
-    private static HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
+    private static final HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
     private final HashMap<String, ArrayList<Code>> func2codes = new HashMap<>();
+    private ArrayList<Code> codes;
+
+    private final ArrayList<Code> global = new ArrayList<>();
     public static HashSet<Op> divider = new HashSet<Op>() {{
         // add(Op.LABEL);
         add(Op.JUMP);
@@ -21,19 +24,27 @@ public class DataFlow {
     }};
 
     public DataFlow(ArrayList<Code> codes) {
-        func2blocks = new HashMap<>();
+        this.codes = codes;
+    }
+
+    public void divideBlock() {
+        func2blocks.clear();
+        func2codes.clear();
+        global.clear();
+        for (Code code : codes) {
+            if (code.getInstr() == Op.FUNC) break;
+            global.add(code);
+        }
         for (int i = 0; i < codes.size(); ++i) {
             if (codes.get(i).getInstr() == Op.FUNC) {
                 String func = codes.get(i).getSymbolOrd1().getNickname();
                 ArrayList<Code> funcCodes = new ArrayList<>();
                 while (codes.get(i).getInstr() != Op.FUNC_END) funcCodes.add(codes.get(i++));
-                // funcCodes.add(codes.get(i)); do not add FUNC_END
+                funcCodes.add(codes.get(i));
                 func2codes.put(func, funcCodes);
             }
         }
         for (String func : func2codes.keySet()) divideBlock(func, func2codes.get(func));
-        for (String func : func2codes.keySet()) arriveDataAnalysis(func);
-        for (String func : func2codes.keySet()) activeDataAnalysis(func);
     }
 
     private void divideBlock(String func, ArrayList<Code> codes) {
@@ -160,6 +171,10 @@ public class DataFlow {
         } while (changed);
     }
 
+    public void arriveDataAnalysis() {
+        for (String func : func2blocks.keySet()) arriveDataAnalysis(func);
+    }
+
     // ------------------ active data analysis ------------------
 
     private void activeDataAnalysis(String fun) {
@@ -184,5 +199,28 @@ public class DataFlow {
                 }
             }
         } while (changed);
+    }
+
+    public void activeDataAnalysis() {
+        for (String func : func2blocks.keySet()) activeDataAnalysis(func);
+    }
+
+    private ArrayList<Code> deleteDeadCode(String fun) {
+        ArrayList<Block> blocks = func2blocks.get(fun);
+        ArrayList<Code> rt = new ArrayList<>();
+        for (Block block : blocks) {
+            rt.addAll(block.deleteDeadCode());
+        }
+        return rt;
+    }
+
+    public void deleteDeadCode() {
+        ArrayList<Code> rt = new ArrayList<>(global);
+        for (String func : func2blocks.keySet()) rt.addAll(deleteDeadCode(func));
+        codes = rt;
+    }
+
+    public ArrayList<Code> getCodes() {
+        return codes;
     }
 }

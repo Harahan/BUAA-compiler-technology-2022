@@ -28,7 +28,7 @@ public class Code {
         LE("<="), // LE VAR VAR VAR
 
         // IO
-        GET_INT("get_int"), // GET_INT (EMPTY) (EMPTY) VAR
+        GET_INT("get_int"), // GET_INT (EMPTY) (EMPTY) VAR or (EMPTY)
         PRINT_STR("print_str"), // PRINT_STR STR (EMPTY) (EMPTY)
         PRINT_INT("print_int"), // PRINT_INT VAR (EMPTY) (EMPTY)
 
@@ -63,9 +63,9 @@ public class Code {
         }
     }
     private final Op instr;
-    private final String ord1;
+    private String ord1;
     private final String ord2;
-    private final String res;
+    private String res;
     private Symbol symbolOrd1 = null;
     private Symbol symbolOrd2 = null;
     private Symbol symbolRes = null;
@@ -183,6 +183,15 @@ public class Code {
         return ord2;
     }
 
+    public void clearRes() {
+        this.res = "(EMPTY)";
+        symbolRes = null;
+    }
+
+    public void clearOrd1() {
+        this.ord1 = "(EMPTY)";
+        symbolOrd1 = null;
+    }
 
     public Symbol getDef() {
         // array or call are not take into consideration
@@ -198,6 +207,13 @@ public class Code {
             if (symbolOrd2 != null && symbolOrd2.getDim() == 0) use.add(symbolOrd2);
         }
         if ((instr == Op.PUSH_PAR_INT || instr == Op.RETURN) && symbolOrd1 != null && symbolOrd1.getDim() == 0) use.add(symbolOrd1);
+        // 注意数组的索引
+        Matcher matcherRes = indexPattern.matcher(res);
+        Matcher matcherOrd1 = indexPattern.matcher(ord1);
+        Matcher matcherOrd2 = indexPattern.matcher(ord2);
+        if (matcherRes.matches() && Visitor.str2Symbol.containsKey(matcherRes.group(1))) use.add(Visitor.str2Symbol.get(matcherRes.group(1)));
+        if (matcherOrd1.matches() && Visitor.str2Symbol.containsKey(matcherOrd1.group(1))) use.add(Visitor.str2Symbol.get(matcherOrd1.group(1)));
+        if (matcherOrd2.matches() && Visitor.str2Symbol.containsKey(matcherOrd2.group(1))) use.add(Visitor.str2Symbol.get(matcherOrd2.group(1)));
         return use;
     }
 

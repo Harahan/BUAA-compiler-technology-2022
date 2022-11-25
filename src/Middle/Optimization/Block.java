@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static Middle.Util.Code.io;
 
 public class Block {
     private final HashSet<Integer> pre = new HashSet<>();
@@ -82,6 +85,33 @@ public class Block {
         }
         // calc kill
         arriveKill.addAll(DataFlow.prepareKill(func, id));
+    }
+
+    public ArrayList<Code> deleteDeadCode() {
+        ArrayList<Code> newCodes = new ArrayList<>();
+        HashSet<Symbol> live = new HashSet<>();
+        activeOut.forEach(meta -> live.add(meta.getSymbol()));
+        for (int i = codes.size() - 1; i >= 0; --i) {
+            Code code = codes.get(i);
+            // 注意全局变量的处理
+            if ((code.getDef() != null && live.contains(code.getDef())) ||
+                    (code.getSymbolRes() != null && code.getSymbolRes().getBlockLevel() == 0) ||
+                    code.getDef() == null) {
+                live.remove(code.getDef());
+                live.addAll(code.getUse());
+                newCodes.add(code);
+            } else if (code.getDef() != null && !live.contains(code.getDef()) && code.getInstr() == Code.Op.GET_INT) {
+                code.clearRes();
+                newCodes.add(code);
+            } else if (code.getInstr() == Code.Op.DEF_VAL) {
+                code.clearOrd1();
+                newCodes.add(code);
+            }
+        }
+        // reverse newCodes
+        ArrayList<Code> res = new ArrayList<>();
+        for (int i = newCodes.size() - 1; i >= 0; --i) res.add(newCodes.get(i));
+        return res;
     }
 
     public HashSet<Meta> getArriveGen() {

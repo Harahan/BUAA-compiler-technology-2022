@@ -15,6 +15,8 @@ import java.util.regex.Matcher;
 
 import Error.ErrorTable;
 
+import static Backend.MipsGenerator.optimize;
+
 public class Compiler {
 
     private static String read(String path) {
@@ -48,8 +50,15 @@ public class Compiler {
             write(ErrorTable.printError(), "error.txt");
             return;
         }
-        new DataFlow(MidCodeList.codes);
+        DataFlow dataFlow = new DataFlow(MidCodeList.codes);
+        // dataFlow.printGraph();
         write(MidCodeList.printMidCode(), "ir.txt");
-        write(new MipsGenerator().printMipsCode(), "mips.txt");
+        if (optimize.get("DeleteDeadCode")) {
+            dataFlow.divideBlock();
+            dataFlow.arriveDataAnalysis();
+            dataFlow.activeDataAnalysis();
+            dataFlow.deleteDeadCode();
+        }
+        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(), "mips.txt");
     }
 }

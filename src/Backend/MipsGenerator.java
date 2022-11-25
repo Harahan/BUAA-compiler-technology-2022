@@ -23,8 +23,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MipsGenerator {
-    HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
+    public static HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
         put("MulDiv", true);
+        put("DeleteDeadCode", true);
     }};
 
     public static final ArrayList<String> mipsCodeList = new ArrayList<>();
@@ -37,8 +38,7 @@ public class MipsGenerator {
     // private int pos = 0;
     // private int dataAdd = 0x10010000;
 
-    public MipsGenerator() {
-        ArrayList<Code> codes = MidCodeList.codes;
+    public MipsGenerator(ArrayList<Code> codes) {
         for (Code code : codes) {
             String ord1 = hasTmp(code.getOrd1());
             String ord2 = hasTmp(code.getOrd2());
@@ -363,7 +363,7 @@ public class MipsGenerator {
     public void getInt(String res) {
         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$v0", 5)));
         mipsCodeList.add(String.valueOf(new Instruction.NP(Instruction.NP.Op.syscall)));
-        saveLVal("$v0", res);
+        if (!res.equals("(EMPTY)")) saveLVal("$v0", res);
     }
 
     /**
