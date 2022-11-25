@@ -197,6 +197,14 @@ public class Code {
     }
 
     public void clearOrd1(String x) {
+        if (x != null) {
+            ord1 = x;
+            Matcher matcherOrd1 = varPattern.matcher(ord1);
+            if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(1), null);
+            matcherOrd1 = tempVarPattern.matcher(ord1);
+            if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(0), null);
+            return;
+        }
         this.ord1 = "(EMPTY)";
         symbolOrd1 = null;
     }

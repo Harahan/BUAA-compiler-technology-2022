@@ -1,6 +1,7 @@
 package Backend;
 
 import Backend.Util.Instruction;
+import Backend.Util.PeepHole;
 import Backend.Util.RegAlloc;
 import Backend.Optimization.*;
 import Middle.MidCodeList;
@@ -26,9 +27,10 @@ public class MipsGenerator {
     public static HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
         put("MulDiv", true);
         put("DeleteDeadCode", true);
+        put("PeepHole", true);
     }};
 
-    public static final ArrayList<String> mipsCodeList = new ArrayList<>();
+    public static ArrayList<String> mipsCodeList = new ArrayList<>();
     private final ArrayList<ArrayList<Code>> funcList = new ArrayList<>();
     private ArrayList<Code> mainList = new ArrayList<>();
     private final HashMap<Symbol, Integer> globalArrAddr = new HashMap<>();
@@ -59,6 +61,7 @@ public class MipsGenerator {
         }
         setOff(Visitor.global, 0);
         translate();
+        if (optimize.get("PeepHole")) PeepHole.peepHole(mipsCodeList);
     }
 
     // ------------------------------------- PREPARE ------------------------------------------------------------

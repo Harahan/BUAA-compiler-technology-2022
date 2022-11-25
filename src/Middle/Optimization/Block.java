@@ -172,6 +172,7 @@ public class Block {
                 "activeOut: " + activeOut + "\n" +
                 "activeUse: " + activeUse + "\n" +
                 "activeDef: " + activeDef + "\n" +
+                "codes: " + codes + "\n" +
                 "----------block" + id + " end----------------\n";
     }
 

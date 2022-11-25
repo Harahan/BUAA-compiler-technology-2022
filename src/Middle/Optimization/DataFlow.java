@@ -31,6 +31,10 @@ public class DataFlow {
         func2blocks.clear();
         func2codes.clear();
         global.clear();
+        HashMap<String, Integer> label2id = new HashMap<>();
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.LABEL) label2id.put(codes.get(i).getOrd1(), i);
+        }
         for (Code code : codes) {
             if (code.getInstr() == Op.FUNC) break;
             global.add(code);
@@ -39,7 +43,25 @@ public class DataFlow {
             if (codes.get(i).getInstr() == Op.FUNC) {
                 String func = codes.get(i).getSymbolOrd1().getNickname();
                 ArrayList<Code> funcCodes = new ArrayList<>();
-                while (codes.get(i).getInstr() != Op.FUNC_END) funcCodes.add(codes.get(i++));
+                while (codes.get(i).getInstr() != Op.FUNC_END) {
+                    Code code = codes.get(i);
+                    String label = null;
+                    if (code.getInstr() == Op.JUMP) label = code.getOrd1();
+                    else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) label = code.getRes();
+                    String selfLabel = label;
+                    if (label != null) {
+                        do {
+                            Integer jid = label2id.get(label);
+                            while (codes.get(jid).getInstr() == Op.LABEL) ++jid;
+                            if (codes.get(jid).getInstr() == Op.JUMP && !codes.get(jid).getOrd1().equals(selfLabel)) label = codes.get(jid).getOrd1();
+                            else break;
+                        } while (true);
+                        if (code.getInstr() == Op.JUMP) code.clearOrd1(label);
+                        else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) code.clearRes(label);
+                    }
+                    funcCodes.add(code);
+                    ++i;
+                }
                 funcCodes.add(codes.get(i));
                 func2codes.put(func, funcCodes);
             }
@@ -112,6 +134,7 @@ public class DataFlow {
         // set pre
         for (int i = 0; i < blocks.size(); ++i) {
             Block block = blocks.get(i);
+            // System.out.println("block " + i + block);
             for (int nxt : block.getNxt()) blocks.get(nxt).getPre().add(i);
         }
         func2blocks.put(func, blocks);
