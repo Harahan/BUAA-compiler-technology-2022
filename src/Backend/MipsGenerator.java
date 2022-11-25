@@ -1,7 +1,7 @@
 package Backend;
 
 import Backend.Util.Instruction;
-import Backend.Util.PeepHole;
+import Backend.Optimization.PeepHole;
 import Backend.Util.RegAlloc;
 import Backend.Optimization.*;
 import Middle.MidCodeList;
@@ -455,7 +455,7 @@ public class MipsGenerator {
                     loadLVal(x, ord1);
                     RegAlloc.mandatorySet(x, symbolOrd1, 0);
                 }
-                mipsCodeList.addAll(MulDiv.div(regRes, x, d, 50, op == Code.Op.DIV));
+                mipsCodeList.addAll(MulDiv.div(regRes, x, d, 50, op == Code.Op.DIV, symbolOrd1));
                 RegAlloc.mandatorySet(regRes, symbolRes, 0);
                 return;
             }

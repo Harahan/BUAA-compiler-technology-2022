@@ -110,7 +110,7 @@ public class Instruction {
 
     static public class ML {
         public enum Op {
-            la, bnez, beqz
+            la, bnez, beqz, bgez,
         }
 
         private final String rt;
