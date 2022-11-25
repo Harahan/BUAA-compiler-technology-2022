@@ -415,7 +415,11 @@ public class Visitor {
 
         String nickname = lValTravel(assignStmt.getlVal(), false);
         String var = expTravel(assignStmt.getExp());
-        MidCodeList.add(Code.Op.ASSIGN, var, "(EMPTY)", nickname);
+        if (!var.startsWith("(T") || nickname.endsWith("]")) MidCodeList.add(Code.Op.ASSIGN, var, "(EMPTY)", nickname);
+        else {
+            // System.out.println(MidCodeList.codes.get(MidCodeList.codes.size() - 1) + " " + nickname);
+            MidCodeList.codes.get(MidCodeList.codes.size() - 1).clearRes(nickname);
+        }
     }
 
     private void expStmtTravel(ExpStmt expStmt) {

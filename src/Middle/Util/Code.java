@@ -183,12 +183,20 @@ public class Code {
         return ord2;
     }
 
-    public void clearRes() {
+    public void clearRes(String x) {
+        if (x != null) {
+            res = x;
+            Matcher matcherRes = varPattern.matcher(res);
+            if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(1), null);
+            matcherRes = tempVarPattern.matcher(res);
+            if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(0), null);
+            return;
+        }
         this.res = "(EMPTY)";
         symbolRes = null;
     }
 
-    public void clearOrd1() {
+    public void clearOrd1(String x) {
         this.ord1 = "(EMPTY)";
         symbolOrd1 = null;
     }

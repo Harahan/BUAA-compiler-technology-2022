@@ -5,6 +5,7 @@ import Symbol.Symbol;
 import Symbol.FuncFormParam;
 import Symbol.Num;
 import java.util.HashMap;
+import java.util.Objects;
 
 public class RegAlloc {
     public static final HashMap<String, Pair<Symbol, Integer>> regMap = new HashMap<String, Pair<Symbol, Integer>>() {{
@@ -90,6 +91,15 @@ public class RegAlloc {
 
     public static void mandatorySet(String reg, Symbol sym, Integer off) {
         /*if (sym.getNickname().equals("i(1,7)"))*/ MipsGenerator.mipsCodeList.add("# " + reg + " <--- " + sym.getNickname());
+        // find reg by new Pair<>(sym, off)
+        for (String r : regMap.keySet()) {
+            Pair<Symbol, Integer> p = regMap.get(r);
+            if (p != null && p.getKey().getNickname().equals(sym.getNickname()) && Objects.equals(p.getValue(), off)) {
+                MipsGenerator.mipsCodeList.add("# " + r + ": " + sym.getNickname() + "change to " + reg);
+                regMap.put(r, null);
+                break;
+            }
+        }
         regMap.put(reg, new Pair<>(sym, off));
     }
 

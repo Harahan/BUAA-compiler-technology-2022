@@ -101,10 +101,7 @@ public class Block {
                 live.addAll(code.getUse());
                 newCodes.add(code);
             } else if (code.getDef() != null && !live.contains(code.getDef()) && code.getInstr() == Code.Op.GET_INT) {
-                code.clearRes();
-                newCodes.add(code);
-            } else if (code.getInstr() == Code.Op.DEF_VAL) {
-                code.clearOrd1();
+                code.clearRes(null);
                 newCodes.add(code);
             }
         }

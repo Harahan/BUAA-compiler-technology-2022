@@ -370,11 +370,17 @@ public class MipsGenerator {
      * 不会有数组变量，至少要3个寄存器
      */
     public void alu(Code.Op op, String res, String ord1, String ord2, Symbol symbolRes, Symbol symbolOrd1, Symbol symbolOrd2) {
-        String regRes = RegAlloc.find(symbolRes, 0);
-        if (regRes == null) {
+        String regRes;
+        if (optimize.get("MulDiv") && (((op == Code.Op.MOD || op == Code.Op.DIV) && ord1.equals(res) && symbolOrd2 == null)
+                || (op == Code.Op.MUL && ((ord2.equals(res) && symbolOrd1 == null) || (ord1.equals(res) && symbolOrd2 == null))))) {
             regRes = RegAlloc.mandatoryAllocOne(symbolRes, 0, false);
-            //loadLVal(regRes, res);
-            // RegAlloc.mandatorySet(regRes, symbolRes, 0);
+        } else {
+            regRes = RegAlloc.find(symbolRes, 0);
+            if (regRes == null) {
+                regRes = RegAlloc.mandatoryAllocOne(symbolRes, 0, false);
+                //loadLVal(regRes, res);
+                //RegAlloc.mandatorySet(regRes, symbolRes, 0);
+            }
         }
 
         if (symbolOrd1 == null && symbolOrd2 == null && op != Code.Op.NOT) {
@@ -669,6 +675,11 @@ public class MipsGenerator {
             } else if (Code.alu.contains(op)) { // not没有
 
                 alu(op, res, ord1, ord2, code.getSymbolRes(), code.getSymbolOrd1(), code.getSymbolOrd2());
+                // !!! 写回内存
+                if (code.getSymbolRes() != null && code.getSymbolRes().getDim() == 0 && code.getSymbolRes().getBlockLevel() == 0) {
+                    String reg = RegAlloc.find(code.getSymbolRes(), 0);
+                    if (reg != null) pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
+                }
 
             } else if (Code.func.contains(op)) {
 
