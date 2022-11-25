@@ -769,11 +769,11 @@ public class Visitor {
     }
 
     private String expTravel(Exp exp) {
-        if (exp instanceof ConstExp || blockLevel == 0) { // 全局或常数
+        //if (exp instanceof ConstExp || blockLevel == 0) { // 全局或常数
             try {
                 return String.valueOf(Calc.calcExp(exp));
             } catch (Exception ignore) {}
-        }
+        // }
         return addExpTravel(exp.getAddExp());
     }
 

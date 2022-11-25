@@ -81,8 +81,10 @@ public class MulDiv {
         }
         if (d < 0) rt.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.neg, resReg, resReg)));
         if (!div) {
-            rt.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.mul, "$a1", resReg, String.valueOf(d))));
-            rt.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.subu, resReg, valReg, "$a1")));
+            // a0 not a1
+            rt.addAll(mul("$a0", resReg, d, 4));
+            //rt.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.mul, "$a1", resReg, String.valueOf(d))));
+            rt.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.subu, resReg, valReg, "$a0")));
         }
         return rt;
     }

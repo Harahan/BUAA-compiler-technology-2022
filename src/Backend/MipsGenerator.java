@@ -193,8 +193,12 @@ public class MipsGenerator {
     }
 
     public static void pushBackMem(Integer imm, Symbol sym, Symbol off) {
-        mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$a0", imm)));
-        pushBackOrLoadFromMem("$a0", sym, off, Instruction.LS.Op.sw);
+        if (imm != 0) {
+            mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$a0", imm)));
+            pushBackOrLoadFromMem("$a0", sym, off, Instruction.LS.Op.sw);
+        } else {
+            pushBackOrLoadFromMem("$zero", sym, off, Instruction.LS.Op.sw);
+        }
     }
 
     /**
@@ -468,9 +472,11 @@ public class MipsGenerator {
                     loadLVal(regOrd1, ord1);
                     RegAlloc.mandatorySet(regOrd1, symbolOrd1, 0);
                 }
-            } else {
+            } else if (!ord1.equals("0")) {
                 regOrd1 = RegAlloc.mandatoryAllocOne(new Num(ord1), 0, true);
                 mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd1, Integer.valueOf(ord1))));
+            } else {
+                regOrd1 = "$zero";
             }
             // ord2
             /**冲突*/
@@ -482,7 +488,7 @@ public class MipsGenerator {
                     loadLVal(regOrd2, ord2);
                     RegAlloc.mandatorySet(regOrd2, symbolOrd2, 0);
                 }
-            } else if (op != Code.Op.NOT) { // !!!
+            } else if (op != Code.Op.NOT && !ord1.equals("0")) { // !!!
                 regOrd2 = RegAlloc.mandatoryAllocOne(regOrd1 ,new Num(ord2), 0, true);
                 mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd2, Integer.valueOf(ord2))));
             } else {
