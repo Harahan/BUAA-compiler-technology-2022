@@ -28,6 +28,7 @@ public class MipsGenerator {
         put("MulDiv", true);
         put("DeleteDeadCode", true);
         put("PeepHole", true);
+        put("BroadcastCode", true);
     }};
 
     public static ArrayList<String> mipsCodeList = new ArrayList<>();
@@ -473,6 +474,7 @@ public class MipsGenerator {
                     RegAlloc.mandatorySet(regOrd1, symbolOrd1, 0);
                 }
             } else if (!ord1.equals("0")) {
+                // System.out.println(ord1 + " " + op);
                 regOrd1 = RegAlloc.mandatoryAllocOne(new Num(ord1), 0, true);
                 mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd1, Integer.valueOf(ord1))));
             } else {

@@ -28,6 +28,7 @@ public class DataFlow {
     }
 
     public void divideBlock() {
+        // System.out.println(codes + "---");
         func2blocks.clear();
         func2codes.clear();
         global.clear();
@@ -71,6 +72,7 @@ public class DataFlow {
 
     private void divideBlock(String func, ArrayList<Code> codes) {
         // 标记block开始code
+        // System.out.println(func + " " + codes);
         HashSet<Integer> begin = new HashSet<>();
         HashMap<String, Integer> labels = new HashMap<>();
         for (int i = 0; i < codes.size(); ++i) {
@@ -138,6 +140,7 @@ public class DataFlow {
             for (int nxt : block.getNxt()) blocks.get(nxt).getPre().add(i);
         }
         func2blocks.put(func, blocks);
+        // System.out.println(func + " " + blocks);
     }
 
     public void printGraph() {
@@ -228,19 +231,49 @@ public class DataFlow {
         for (String func : func2blocks.keySet()) activeDataAnalysis(func);
     }
 
-    private ArrayList<Code> deleteDeadCode(String fun) {
+    private void deleteDeadCode(String fun) {
         ArrayList<Block> blocks = func2blocks.get(fun);
         ArrayList<Code> rt = new ArrayList<>();
-        for (Block block : blocks) {
-            rt.addAll(block.deleteDeadCode());
+        for (Block block : blocks) rt.addAll(block.deleteDeadCode());
+        func2codes.put(fun, rt);
+        int i = 0, j = 0;
+        for (int k = 0; k < codes.size(); ++k) {
+            if (codes.get(k).getInstr() == Op.FUNC && codes.get(k).getOrd1().equals(fun)) i = k;
+            if (codes.get(k).getInstr() == Op.FUNC_END && codes.get(k).getOrd1().equals(fun)) j = k;
         }
-        return rt;
+        ArrayList<Code> pre = new ArrayList<>(codes.subList(0, i));
+        ArrayList<Code> post = new ArrayList<>(j + 1 < codes.size() ? codes.subList(j + 1, codes.size()) : new ArrayList<>());
+        codes = pre;
+        codes.addAll(rt);
+        codes.addAll(post);
     }
 
     public void deleteDeadCode() {
-        ArrayList<Code> rt = new ArrayList<>(global);
-        for (String func : func2blocks.keySet()) rt.addAll(deleteDeadCode(func));
-        codes = rt;
+        for (String func : func2blocks.keySet()) deleteDeadCode(func);
+    }
+
+    // ------------------ broadcast ------------------
+
+    private boolean broadcastCode(String fun) {
+        boolean changed = false;
+        ArrayList<Block> blocks = func2blocks.get(fun);
+        for (Block block : blocks) {
+            changed |= block.broadcastCode();
+        }
+        return changed;
+    }
+
+    public void broadcastCode() {
+        boolean changed;
+        for (String func : func2blocks.keySet()) {
+            changed = broadcastCode(func);
+            while (changed) {
+                arriveDataAnalysis(func);
+                activeDataAnalysis(func);
+                deleteDeadCode(func);
+                changed = broadcastCode(func);
+            }
+        }
     }
 
     public ArrayList<Code> getCodes() {

@@ -53,12 +53,17 @@ public class Compiler {
         DataFlow dataFlow = new DataFlow(MidCodeList.codes);
         // dataFlow.printGraph();
         write(MidCodeList.printMidCode(), "ir.txt");
+        dataFlow.divideBlock();
+        dataFlow.arriveDataAnalysis();
+        dataFlow.activeDataAnalysis();
         if (optimize.get("DeleteDeadCode")) {
-            dataFlow.divideBlock();
-            dataFlow.arriveDataAnalysis();
-            dataFlow.activeDataAnalysis();
             dataFlow.deleteDeadCode();
         }
+        if (optimize.get("BroadcastCode")) {
+            dataFlow.broadcastCode();
+        }
+        MidCodeList.codes = dataFlow.getCodes();
+        write(MidCodeList.printMidCode(), "ir_opt.txt");
         write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(), "mips.txt");
     }
 }

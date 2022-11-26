@@ -62,9 +62,9 @@ public class Code {
             this.op = op;
         }
     }
-    private final Op instr;
+    private Op instr;
     private String ord1;
-    private final String ord2;
+    private String ord2;
     private String res;
     private Symbol symbolOrd1 = null;
     private Symbol symbolOrd2 = null;
@@ -209,27 +209,46 @@ public class Code {
         symbolOrd1 = null;
     }
 
+    // clearOrd2
+    public void clearOrd2(String x) {
+        if (x != null) {
+            ord2 = x;
+            Matcher matcherOrd2 = varPattern.matcher(ord2);
+            if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(1), null);
+            matcherOrd2 = tempVarPattern.matcher(ord2);
+            if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(0), null);
+            return;
+        }
+        this.ord2 = "(EMPTY)";
+        symbolOrd2 = null;
+    }
+
+    // setOp
+    public void setOp(Op op) {
+        this.instr = op;
+    }
+
     public Symbol getDef() {
         // array or call are not take into consideration
         if ((alu.contains(instr) || instr == Op.DEF_VAL || instr == Op.GET_INT) && symbolRes != null && symbolRes.getDim() == 0) return symbolRes;
         return null;
     }
 
-    public HashSet<Symbol> getUse() {
+    public HashMap<Symbol, Integer> getUse() {
         // array, call and return value are not take into consideration
-        HashSet<Symbol> use = new HashSet<>();
+        HashMap<Symbol, Integer> use = new HashMap<Symbol, Integer>();
         if (alu.contains(instr) || io.contains(instr) || jump.contains(instr) || def.contains(instr)) {
-            if (symbolOrd1 != null && symbolOrd1.getDim() == 0) use.add(symbolOrd1);
-            if (symbolOrd2 != null && symbolOrd2.getDim() == 0) use.add(symbolOrd2);
+            if (symbolOrd1 != null && symbolOrd1.getDim() == 0) use.put(symbolOrd1, 0);
+            if (symbolOrd2 != null && symbolOrd2.getDim() == 0) use.put(symbolOrd2, 1);
         }
-        if ((instr == Op.PUSH_PAR_INT || instr == Op.RETURN) && symbolOrd1 != null && symbolOrd1.getDim() == 0) use.add(symbolOrd1);
+        if ((instr == Op.PUSH_PAR_INT || instr == Op.RETURN) && symbolOrd1 != null && symbolOrd1.getDim() == 0) use.put(symbolOrd1, 0);
         // 注意数组的索引
         Matcher matcherRes = indexPattern.matcher(res);
         Matcher matcherOrd1 = indexPattern.matcher(ord1);
         Matcher matcherOrd2 = indexPattern.matcher(ord2);
-        if (matcherRes.matches() && Visitor.str2Symbol.containsKey(matcherRes.group(1))) use.add(Visitor.str2Symbol.get(matcherRes.group(1)));
-        if (matcherOrd1.matches() && Visitor.str2Symbol.containsKey(matcherOrd1.group(1))) use.add(Visitor.str2Symbol.get(matcherOrd1.group(1)));
-        if (matcherOrd2.matches() && Visitor.str2Symbol.containsKey(matcherOrd2.group(1))) use.add(Visitor.str2Symbol.get(matcherOrd2.group(1)));
+        if (matcherRes.matches() && Visitor.str2Symbol.containsKey(matcherRes.group(1))) use.put(Visitor.str2Symbol.get(matcherRes.group(1)), 4);
+        if (matcherOrd1.matches() && Visitor.str2Symbol.containsKey(matcherOrd1.group(1))) use.put(Visitor.str2Symbol.get(matcherOrd1.group(1)), 2);
+        if (matcherOrd2.matches() && Visitor.str2Symbol.containsKey(matcherOrd2.group(1))) use.put(Visitor.str2Symbol.get(matcherOrd2.group(1)), 3);
         return use;
     }
 
@@ -239,5 +258,23 @@ public class Code {
             if (symbolRes != null && symbolRes.getDim() == 0) return symbolRes;
         }
         return null;
+    }
+
+    public void reSet(Integer op, String ord, Symbol symbol) {
+        if (op == 0) {
+            ord1 = ord;
+            symbolOrd1 = symbol;
+        } else if (op == 1) {
+            ord2 = ord;
+            symbolOrd2 = symbol;
+        } else if (op == 2) {
+            // System.out.println(ord1);
+            ord1 = ord1.replaceFirst("\\[.*]", "[" + ord + "]");
+            // System.out.println(ord1);
+        } else if (op == 3) {
+            ord2 = ord2.replaceFirst("\\[.*]", "[" + ord + "]");
+        } else if (op == 4) {
+            res = res.replaceFirst("\\[.*]", "[" + ord + "]");
+        }
     }
 }
