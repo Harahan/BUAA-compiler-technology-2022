@@ -17,7 +17,7 @@ public class Instruction {
 
     static public class MMI {
         public enum Op {
-            addi, addiu, andi, ori, xori, slti, sltiu,
+            addi, addiu, andi, ori, xori, slti, sltiu, subiu,
             sll, srl, // 逻辑移动
             sra, // 算数右移
         }

@@ -33,13 +33,41 @@ public class DataFlow {
         func2codes.clear();
         global.clear();
         HashMap<String, Integer> label2id = new HashMap<>();
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getInstr() == Op.LABEL) label2id.put(codes.get(i).getOrd1(), i);
-        }
         for (Code code : codes) {
             if (code.getInstr() == Op.FUNC) break;
             global.add(code);
         }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP) {
+                codes.remove(i + 1);
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.LABEL
+                    && codes.get(i).getOrd1().equals(codes.get(i + 1).getOrd1()) && i - 1 >= 0 && Code.jump.contains(codes.get(i - 1).getInstr())) {
+                codes.remove(i);
+                --i;
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.EQZ_JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP
+                    && i + 2 < codes.size() && codes.get(i + 2).getInstr() == Op.LABEL && codes.get(i).getRes().equals(codes.get(i + 2).getOrd1())) {
+                codes.get(i).setOp(Op.NEZ_JUMP);
+                codes.get(i).clearRes(codes.get(i + 1).getOrd1());
+                codes.remove(i + 1);
+                --i;
+            } else if (codes.get(i).getInstr() == Op.NEZ_JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP
+                    && i + 2 < codes.size() && codes.get(i + 2).getInstr() == Op.LABEL && codes.get(i).getRes().equals(codes.get(i + 2).getOrd1())) {
+                codes.get(i).setOp(Op.EQZ_JUMP);
+                codes.get(i).clearRes(codes.get(i + 1).getOrd1());
+                codes.remove(i + 1);
+                --i;
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.LABEL) label2id.put(codes.get(i).getOrd1(), i);
+        }
+        // System.out.println(codes);
         for (int i = 0; i < codes.size(); ++i) {
             if (codes.get(i).getInstr() == Op.FUNC) {
                 String func = codes.get(i).getSymbolOrd1().getNickname();
@@ -50,11 +78,16 @@ public class DataFlow {
                     if (code.getInstr() == Op.JUMP) label = code.getOrd1();
                     else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) label = code.getRes();
                     String selfLabel = label;
+                    String preLabel = label;
                     if (label != null) {
                         do {
                             Integer jid = label2id.get(label);
-                            while (codes.get(jid).getInstr() == Op.LABEL) ++jid;
-                            if (codes.get(jid).getInstr() == Op.JUMP && !codes.get(jid).getOrd1().equals(selfLabel)) label = codes.get(jid).getOrd1();
+                            // System.out.println(label + " " + jid + " " + selfLabel);
+                            while (jid < codes.size() && codes.get(jid).getInstr() == Op.LABEL) ++jid;
+                            if (jid < codes.size() && codes.get(jid).getInstr() == Op.JUMP && !codes.get(jid).getOrd1().equals(selfLabel) && !codes.get(jid).getOrd1().equals(preLabel)) {
+                                preLabel = label;
+                                label = codes.get(jid).getOrd1();
+                            }
                             else break;
                         } while (true);
                         if (code.getInstr() == Op.JUMP) code.clearOrd1(label);
@@ -65,6 +98,7 @@ public class DataFlow {
                 }
                 funcCodes.add(codes.get(i));
                 func2codes.put(func, funcCodes);
+                // System.out.println(funcCodes);
             }
         }
         for (String func : func2codes.keySet()) divideBlock(func, func2codes.get(func));
@@ -231,8 +265,9 @@ public class DataFlow {
         for (String func : func2blocks.keySet()) activeDataAnalysis(func);
     }
 
-    private void deleteDeadCode(String fun) {
+    private boolean deleteDeadCode(String fun) {
         ArrayList<Block> blocks = func2blocks.get(fun);
+        int x = func2codes.get(fun).size();
         ArrayList<Code> rt = new ArrayList<>();
         for (Block block : blocks) rt.addAll(block.deleteDeadCode());
         func2codes.put(fun, rt);
@@ -246,10 +281,19 @@ public class DataFlow {
         codes = pre;
         codes.addAll(rt);
         codes.addAll(post);
+        return x != rt.size();
     }
 
     public void deleteDeadCode() {
-        for (String func : func2blocks.keySet()) deleteDeadCode(func);
+        for (String func : func2blocks.keySet()) {
+            boolean changed = deleteDeadCode(func);
+            while (changed) {
+                divideBlock(func, func2codes.get(func));
+                arriveDataAnalysis(func);
+                activeDataAnalysis(func);
+                changed = deleteDeadCode(func);
+            }
+        }
     }
 
     // ------------------ broadcast ------------------
@@ -278,5 +322,23 @@ public class DataFlow {
 
     public ArrayList<Code> getCodes() {
         return codes;
+    }
+
+    public static HashSet<Symbol> getActiveOut(String fun, Integer codeId) {
+        if (fun == null || codeId == null) return null;
+        HashSet<Symbol> rt = new HashSet<>();
+        int x = -1;
+        boolean error = true;
+        for (Block block : func2blocks.get(fun)) {
+            x += block.getCodes().size();
+            if (x == codeId) {
+                block.getActiveOut().forEach(meta -> rt.add(meta.getSymbol()));
+                //System.out.println("active out: " + rt);
+                error = false;
+                break;
+            }
+        }
+        if (error) throw new RuntimeException("codeId error");
+        return rt;
     }
 }

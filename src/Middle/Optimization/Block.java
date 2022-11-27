@@ -30,6 +30,8 @@ public class Block {
     private final int id;
     private final String func;
 
+    public static int magic = 0;
+
     public Block(Integer id, ArrayList<Code> codes, String func) {
         this.codes = codes;
         this.id = id;
@@ -120,7 +122,71 @@ public class Block {
         // reverse newCodes
         ArrayList<Code> res = new ArrayList<>();
         for (int i = newCodes.size() - 1; i >= 0; --i) res.add(newCodes.get(i));
+        boolean flag = false;
+        int sz = res.size();
+        for (int i = 0; i < res.size(); ++i) {
+            Code code = res.get(i);
+            if (code.getInstr() == Code.Op.EQZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
+                    && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
+                    && res.get(i - 1).getRes().equals(code.getOrd1())) {
+                flag = true;
+                int x = Integer.parseInt(res.get(i - 1).getOrd1());
+                res.remove(--i);
+                if (x == 0) {
+                    code.setOp(Code.Op.JUMP);
+                    code.clearOrd1(code.getRes());
+                    code.clearOrd2(null);
+                    code.clearRes(null);
+                    --i;
+                } else {
+                    res.remove(i--);
+                }
+            } else if (code.getInstr() == Code.Op.NEZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
+                    && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
+                    && res.get(i - 1).getRes().equals(code.getOrd1())) {
+                flag = true;
+                int x = Integer.parseInt(res.get(i - 1).getOrd1());
+                res.remove(--i);
+                if (x != 0) {
+                    code.setOp(Code.Op.JUMP);
+                    code.clearOrd1(code.getRes());
+                    code.clearOrd2(null);
+                    code.clearRes(null);
+                    --i;
+                } else {
+                    res.remove(i--);
+                }
+            } else if (code.getInstr() == Code.Op.EQZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
+                flag = true;
+                int x = Integer.parseInt(code.getOrd1());
+                if (x == 0) {
+                    code.setOp(Code.Op.JUMP);
+                    code.clearOrd1(code.getRes());
+                    code.clearOrd2(null);
+                    code.clearRes(null);
+                    --i;
+                } else {
+                    res.remove(i--);
+                }
+            } else if (code.getInstr() == Code.Op.NEZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
+                flag = true;
+                int x = Integer.parseInt(code.getOrd1());
+                if (x != 0) {
+                    code.setOp(Code.Op.JUMP);
+                    code.clearOrd1(code.getRes());
+                    code.clearOrd2(null);
+                    code.clearRes(null);
+                    --i;
+                } else {
+                    res.remove(i--);
+                }
+            } else if (code.getInstr() == Code.Op.JUMP && i + 1 < res.size() && res.get(i + 1).getInstr() == Code.Op.JUMP) {
+                flag = true;
+                res.remove(i + 1);
+            }
+        }
         // System.out.println(res);
+        if (flag && res.size() == sz) codes.add(new Code(Code.Op.NOP, "(EMPTY)", "(EMPTY)", "(EMPTY)"));
         codes = res;
         return res;
     }

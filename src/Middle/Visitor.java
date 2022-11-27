@@ -346,7 +346,7 @@ public class Visitor {
         // label_2
         Integer label1 = ++MidCodeList.labelCounter;
         int label2 = ++MidCodeList.labelCounter;
-        condTravel(ifStmt.getCond(), label1);
+        condTravel(ifStmt.getCond(), label1, false);
         stmtTravel(ifStmt.getIfStmt());
         MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label1 + ")", "(EMPTY)", "(EMPTY)");
@@ -368,15 +368,21 @@ public class Visitor {
         // !!! 空jump
         String whileBeginLabel = MidCodeList.add(Code.Op.JUMP, "(AUTO)", "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, whileBeginLabel, "(EMPTY)", "(EMPTY)");
+        Integer realWhileBeginLabel = ++MidCodeList.labelCounter;
         // get end
         Integer label = ++MidCodeList.labelCounter;
 
         whileBeginEndLabelStack.push(whileBeginLabel);
         whileBeginEndLabelStack.push("(LABEL" + label + ")");
 
-        condTravel(whileStmt.getCond(), label);
+        condTravel(whileStmt.getCond(), label, false);
+        // !!! 空jump
+        MidCodeList.add(Code.Op.JUMP, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
+        MidCodeList.add(Code.Op.LABEL, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
         stmtTravel(whileStmt.getStmt());
-        MidCodeList.add(Code.Op.JUMP, whileBeginLabel, "(EMPTY)", "(EMPTY)");
+        condTravel(whileStmt.getCond(), realWhileBeginLabel, true);
+        // 空jump
+        MidCodeList.add(Code.Op.JUMP, "(LABEL" + label + ")", "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label + ")", "(EMPTY)", "(EMPTY)");
 
         whileBeginEndLabelStack.pop();
@@ -496,27 +502,35 @@ public class Visitor {
 
     // -------------------------- EXP ----------------------------
 
-    // 不满足跳 label
-    private void lOrExpTravel(LOrExp lOrExp, Integer label) {
-        // ... || ... || ... x
-        // 1. 满足跳 x 不满足顺序
-        // 2. 满足跳 x 不满足顺序
-        // ...
-        // n. 不满足跳 label
-        Integer x = ++MidCodeList.labelCounter;
+    // ok = false 不满足跳 label
+    // ok = true 满足跳 label
+    private void lOrExpTravel(LOrExp lOrExp, Integer label, boolean ok) {
         LAndExp first = lOrExp.getFirst();
-        // ... 1. 不满足跳 label
-        // ... || ...... 1. 满足跳 x
-        if (lOrExp.getTs().size() == 0) {
-            lAndExpTravel(first, label, false);
-            return;
+        if (!ok) {
+            // ... || ... || ... x
+            // 1. 满足跳 x 不满足顺序
+            // 2. 满足跳 x 不满足顺序
+            // ...
+            // n. 不满足跳 label
+            Integer x = ++MidCodeList.labelCounter;
+            // ... 1. 不满足跳 label
+            // ... || ...... 1. 满足跳 x
+            if (lOrExp.getTs().size() == 0) {
+                lAndExpTravel(first, label, false);
+                return;
+            }
+            lAndExpTravel(first, x, true);
+            for (int i = 0; i < lOrExp.getTs().size(); ++i) {
+                if (i != lOrExp.getTs().size() - 1) lAndExpTravel(lOrExp.getTs().get(i), x, true);
+                else lAndExpTravel(lOrExp.getTs().get(i), label, false);
+            }
+            MidCodeList.add(Code.Op.LABEL, "(LABEL" + x + ")", "(EMPTY)", "(EMPTY)");
+        } else {
+            // ... || ... || ...
+            // 满足跳 label
+            lAndExpTravel(first, label, true);
+            for (LAndExp exp : lOrExp.getTs()) lAndExpTravel(exp, label, true);
         }
-        lAndExpTravel(first, x, true);
-        for (int i = 0; i < lOrExp.getTs().size(); ++i) {
-            if (i != lOrExp.getTs().size() - 1) lAndExpTravel(lOrExp.getTs().get(i), x, true);
-            else lAndExpTravel(lOrExp.getTs().get(i), label, false);
-        }
-        MidCodeList.add(Code.Op.LABEL, "(LABEL" + x + ")", "(EMPTY)", "(EMPTY)");
     }
 
     /*
@@ -764,8 +778,8 @@ public class Visitor {
         }
     }
 
-    private void condTravel(Cond cond, Integer label) {
-        lOrExpTravel(cond.getlOrExp(), label);
+    private void condTravel(Cond cond, Integer label, boolean ok) {
+        lOrExpTravel(cond.getlOrExp(), label, ok);
     }
 
     private String expTravel(Exp exp) {

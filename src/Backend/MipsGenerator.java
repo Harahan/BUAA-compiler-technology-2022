@@ -5,6 +5,7 @@ import Backend.Optimization.PeepHole;
 import Backend.Util.RegAlloc;
 import Backend.Optimization.*;
 import Middle.MidCodeList;
+import Middle.Optimization.DataFlow;
 import Middle.Util.Code;
 import Middle.Visitor;
 import Symbol.Symbol;
@@ -16,10 +17,7 @@ import Symbol.Tmp;
 import Symbol.Val;
 import Backend.Util.RegAlloc.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Stack;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -463,7 +461,8 @@ public class MipsGenerator {
 
 
             // 零维变量 @ 零维变量
-            String regOrd1, regOrd2 = null;
+            String regOrd1 = null, regOrd2 = null;
+            int tag = 0;
             // ord1
             if (symbolOrd1 != null) {
                 regOrd1 = RegAlloc.find(symbolOrd1, 0);
@@ -474,9 +473,13 @@ public class MipsGenerator {
                     RegAlloc.mandatorySet(regOrd1, symbolOrd1, 0);
                 }
             } else if (!ord1.equals("0")) {
-                // System.out.println(ord1 + " " + op);
-                regOrd1 = RegAlloc.mandatoryAllocOne(new Num(ord1), 0, true);
-                mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd1, Integer.valueOf(ord1))));
+                 //System.out.println(ord1 + " " + op);
+                if (op != Code.Op.ADD) {
+                    regOrd1 = RegAlloc.mandatoryAllocOne(new Num(ord1), 0, true);
+                    mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd1, Integer.valueOf(ord1))));
+                } else {
+                    tag = 1;
+                }
             } else {
                 regOrd1 = "$zero";
             }
@@ -491,28 +494,74 @@ public class MipsGenerator {
                     RegAlloc.mandatorySet(regOrd2, symbolOrd2, 0);
                 }
             } else if (op != Code.Op.NOT && !ord1.equals("0")) { // !!!
-                regOrd2 = RegAlloc.mandatoryAllocOne(regOrd1 ,new Num(ord2), 0, true);
-                mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd2, Integer.valueOf(ord2))));
+                if (op != Code.Op.SUB && op != Code.Op.ADD) {
+                    regOrd2 = RegAlloc.mandatoryAllocOne(regOrd1, new Num(ord2), 0, true);
+                    mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd2, Integer.valueOf(ord2))));
+                } else {
+                    tag = 2;
+                }
             } else {
                 regOrd2 = "$zero";
             }
 
-            switch (op) {
-                case ADD: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.addu, regRes, regOrd1, regOrd2)));break;
-                case SUB: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.subu, regRes, regOrd1, regOrd2)));break;
-                case MUL: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.mul, regRes, regOrd1, regOrd2)));break;
-                case DIV: mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.div, regOrd1, regOrd2)));
-                    mipsCodeList.add(String.valueOf(new Instruction.M(Instruction.M.Op.mflo, regRes)));break;
-                case MOD: mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.div, regOrd1, regOrd2)));
-                    mipsCodeList.add(String.valueOf(new Instruction.M(Instruction.M.Op.mfhi, regRes)));break;
-                case EQ:
-                case NOT:
-                    mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.seq, regRes, regOrd1, regOrd2))); break;
-                case NE: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sne, regRes, regOrd1, regOrd2)));break;
-                case GT: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sgt, regRes, regOrd1, regOrd2)));break;
-                case GE: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sge, regRes, regOrd1, regOrd2)));break;
-                case LT: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.slt, regRes, regOrd1, regOrd2)));break;
-                case LE: mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sle, regRes, regOrd1, regOrd2))); break;
+            if (tag == 0) {
+                switch (op) {
+                    case ADD:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.addu, regRes, regOrd1, regOrd2)));
+                        break;
+                    case SUB:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.subu, regRes, regOrd1, regOrd2)));
+                        break;
+                    case MUL:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.mul, regRes, regOrd1, regOrd2)));
+                        break;
+                    case DIV:
+                        mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.div, regOrd1, regOrd2)));
+                        mipsCodeList.add(String.valueOf(new Instruction.M(Instruction.M.Op.mflo, regRes)));
+                        break;
+                    case MOD:
+                        mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.div, regOrd1, regOrd2)));
+                        mipsCodeList.add(String.valueOf(new Instruction.M(Instruction.M.Op.mfhi, regRes)));
+                        break;
+                    case EQ:
+                    case NOT:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.seq, regRes, regOrd1, regOrd2)));
+                        break;
+                    case NE:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sne, regRes, regOrd1, regOrd2)));
+                        break;
+                    case GT:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sgt, regRes, regOrd1, regOrd2)));
+                        break;
+                    case GE:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sge, regRes, regOrd1, regOrd2)));
+                        break;
+                    case LT:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.slt, regRes, regOrd1, regOrd2)));
+                        break;
+                    case LE:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sle, regRes, regOrd1, regOrd2)));
+                        break;
+                }
+            } else {
+                String reg = null;
+                Integer num = null;
+                if (tag == 1) {
+                    reg = regOrd2;
+                    num = Integer.valueOf(ord1);
+                } else {
+                    reg = regOrd1;
+                    num = Integer.valueOf(ord2);
+                }
+                System.out.println(op + " " + regRes + " " + reg + " " + num);
+                switch (op) {
+                    case ADD:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, regRes, reg, num)));
+                        break;
+                    case SUB:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.subiu, regRes, reg, num)));
+                        break;
+                    }
             }
         }
         // 防止regOrd1 或者 regOrd2 覆盖了 regRes
@@ -573,15 +622,18 @@ public class MipsGenerator {
      *  1
      *  0
      */
-    public void saveRegs() {
+    public void saveRegs(Integer codeId, String func) {
         HashMap<String, Pair<Symbol, Integer>> used = RegAlloc.getAllUsed();
+        HashSet<Symbol> activeOut = DataFlow.getActiveOut(func, codeId);
         for (String reg : used.keySet()) {
             // 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
             Symbol sym = RegAlloc.regMap.get(reg).getKey();
-            if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
-                // 处理临时变量，且该变量使用超过一次
-                if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
-                    pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
+            if (sym.getBlockLevel() != 0 && (activeOut == null || activeOut.contains(sym))) {
+                if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
+                    // 处理临时变量，且该变量使用超过一次
+                    if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
+                        pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
+                    }
                 }
             }
             if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
@@ -717,7 +769,7 @@ public class MipsGenerator {
                     //for (Pair<Pair<Symbol, String>, Boolean> p : params) {
                     //    pushIntoStack(paraNum++, p.getKey().getValue(), p.getKey().getKey(), p.getValue(), callFunc.lastElement().getFuncTable().totSize);
                     //}
-                    saveRegs();
+                    saveRegs(null, null);
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", -callFunc.lastElement().getFuncTable().totSize - 32 * 4)));
                     mipsCodeList.add("jal " +  getName(callFunc.lastElement()));
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", 32 * 4 + callFunc.lastElement().getFuncTable().totSize)));
@@ -731,10 +783,10 @@ public class MipsGenerator {
             } else if (Code.jump.contains(op)) {
                 // 跳转前压栈（部分执行？）
                 if (op == Code.Op.JUMP) {
-                    saveRegs();
+                    saveRegs(i, func.getNickname());
                     mipsCodeList.add(String.valueOf(new Instruction.L(Instruction.L.Op.j, ord1.substring(1, ord1.length() - 1))));
                 } else if (op == Code.Op.EQZ_JUMP || op == Code.Op.NEZ_JUMP) {
-                    saveRegs();
+                    saveRegs(i, func.getNickname());
                     String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
                     if (reg == null) {
                         loadLVal("$a1", ord1);

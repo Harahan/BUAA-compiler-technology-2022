@@ -54,7 +54,9 @@ public class Code {
 
         // BLOCK
         BLOCK_BEGIN("block_begin"), // BLOCK_BEGIN VAR (EMPTY) (EMPTY)
-        BLOCK_END("block_end"); // BLOCK_END VAR (EMPTY) (EMPTY)
+        BLOCK_END("block_end"), // BLOCK_END VAR (EMPTY) (EMPTY)
+
+        NOP("nop"); // NOP (EMPTY) (EMPTY) (EMPTY)
 
         private String op;
 
