@@ -1,5 +1,6 @@
 package Middle.Optimization;
 
+import Backend.MipsGenerator;
 import Backend.Util.RegAlloc;
 import Middle.Util.Code;
 import Symbol.*;
@@ -124,96 +125,98 @@ public class Block {
         for (int i = newCodes.size() - 1; i >= 0; --i) res.add(newCodes.get(i));
         boolean flag = false;
         int sz = res.size();
-        for (int i = 0; i < res.size(); ++i) {
-            Code code = res.get(i);
-            if (code.getInstr() == Code.Op.EQZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
-                    && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
-                    && res.get(i - 1).getRes().equals(code.getOrd1())) {
-                flag = true;
-                int x = Integer.parseInt(res.get(i - 1).getOrd1());
-                res.remove(--i);
-                if (x == 0) {
-                    code.setOp(Code.Op.JUMP);
-                    code.clearOrd1(code.getRes());
-                    code.clearOrd2(null);
-                    code.clearRes(null);
-                    --i;
-                } else {
-                    res.remove(i--);
-                }
-            } else if (code.getInstr() == Code.Op.NEZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
-                    && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
-                    && res.get(i - 1).getRes().equals(code.getOrd1())) {
-                flag = true;
-                int x = Integer.parseInt(res.get(i - 1).getOrd1());
-                res.remove(--i);
-                if (x != 0) {
-                    code.setOp(Code.Op.JUMP);
-                    code.clearOrd1(code.getRes());
-                    code.clearOrd2(null);
-                    code.clearRes(null);
-                    --i;
-                } else {
-                    res.remove(i--);
-                }
-            } else if (code.getInstr() == Code.Op.EQZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
-                flag = true;
-                int x = Integer.parseInt(code.getOrd1());
-                if (x == 0) {
-                    code.setOp(Code.Op.JUMP);
-                    code.clearOrd1(code.getRes());
-                    code.clearOrd2(null);
-                    code.clearRes(null);
-                    --i;
-                } else {
-                    res.remove(i--);
-                }
-            } else if (code.getInstr() == Code.Op.NEZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
-                flag = true;
-                int x = Integer.parseInt(code.getOrd1());
-                if (x != 0) {
-                    code.setOp(Code.Op.JUMP);
-                    code.clearOrd1(code.getRes());
-                    code.clearOrd2(null);
-                    code.clearRes(null);
-                    --i;
-                } else {
-                    res.remove(i--);
-                }
-            } else if (code.getInstr() == Code.Op.JUMP && i + 1 < res.size() && res.get(i + 1).getInstr() == Code.Op.JUMP) {
-                flag = true;
-                res.remove(i + 1);
-            } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN && i + 1 < codes.size() &&
-                    (code.getRes().equals(codes.get(i + 1).getOrd1()) || code.getRes().equals(codes.get(i + 1).getOrd2()))) {
-                Code.Op op = code.getInstr();
-                String ord1 = code.getOrd1();
-                String ord2 = code.getOrd2();
-                Code nxtCode = codes.get(i + 1);
-                String t = null;
-                int x = code.getRes().equals(codes.get(i + 1).getOrd1()) ? 1 : 2;
-                if (op == Code.Op.MUL && (ord1.equals("1") || ord2.equals("1"))) {
-                    t = ord1.equals("1") ? ord2 : ord1;
+        if (MipsGenerator.optimize.get("MidCodeOptimize")) {
+            for (int i = 0; i < res.size(); ++i) {
+                Code code = res.get(i);
+                if (code.getInstr() == Code.Op.EQZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
+                        && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
+                        && res.get(i - 1).getRes().equals(code.getOrd1())) {
                     flag = true;
-                } else if (op == Code.Op.MUL && (ord1.equals("0") || ord2.equals("0"))) {
-                    t = "0";
-                    flag = true;
-                } else if (op == Code.Op.ADD && (ord1.equals("0") || ord2.equals("0"))) {
-                    t = ord1.equals("0") ? ord2 : ord1;
-                    flag = true;
-                } else if (op == Code.Op.SUB && ord2.equals("0")) {
-                    t = ord1;
-                    flag = true;
-                } else if (op == Code.Op.DIV && ord2.equals("1")) {
-                    t = ord1;
-                    flag = true;
-                }
-                if (flag) {
-                    if (x == 1) {
-                        nxtCode.clearOrd1(t);
+                    int x = Integer.parseInt(res.get(i - 1).getOrd1());
+                    res.remove(--i);
+                    if (x == 0) {
+                        code.setOp(Code.Op.JUMP);
+                        code.clearOrd1(code.getRes());
+                        code.clearOrd2(null);
+                        code.clearRes(null);
+                        --i;
                     } else {
-                        nxtCode.clearOrd2(t);
+                        res.remove(i--);
                     }
-                    res.remove(i--);
+                } else if (code.getInstr() == Code.Op.NEZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
+                        && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
+                        && res.get(i - 1).getRes().equals(code.getOrd1())) {
+                    flag = true;
+                    int x = Integer.parseInt(res.get(i - 1).getOrd1());
+                    res.remove(--i);
+                    if (x != 0) {
+                        code.setOp(Code.Op.JUMP);
+                        code.clearOrd1(code.getRes());
+                        code.clearOrd2(null);
+                        code.clearRes(null);
+                        --i;
+                    } else {
+                        res.remove(i--);
+                    }
+                } else if (code.getInstr() == Code.Op.EQZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
+                    flag = true;
+                    int x = Integer.parseInt(code.getOrd1());
+                    if (x == 0) {
+                        code.setOp(Code.Op.JUMP);
+                        code.clearOrd1(code.getRes());
+                        code.clearOrd2(null);
+                        code.clearRes(null);
+                        --i;
+                    } else {
+                        res.remove(i--);
+                    }
+                } else if (code.getInstr() == Code.Op.NEZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
+                    flag = true;
+                    int x = Integer.parseInt(code.getOrd1());
+                    if (x != 0) {
+                        code.setOp(Code.Op.JUMP);
+                        code.clearOrd1(code.getRes());
+                        code.clearOrd2(null);
+                        code.clearRes(null);
+                        --i;
+                    } else {
+                        res.remove(i--);
+                    }
+                } else if (code.getInstr() == Code.Op.JUMP && i + 1 < res.size() && res.get(i + 1).getInstr() == Code.Op.JUMP) {
+                    flag = true;
+                    res.remove(i + 1);
+                } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN && i + 1 < codes.size() &&
+                        (code.getRes().equals(codes.get(i + 1).getOrd1()) || code.getRes().equals(codes.get(i + 1).getOrd2()))) {
+                    Code.Op op = code.getInstr();
+                    String ord1 = code.getOrd1();
+                    String ord2 = code.getOrd2();
+                    Code nxtCode = codes.get(i + 1);
+                    String t = null;
+                    int x = code.getRes().equals(codes.get(i + 1).getOrd1()) ? 1 : 2;
+                    if (op == Code.Op.MUL && (ord1.equals("1") || ord2.equals("1"))) {
+                        t = ord1.equals("1") ? ord2 : ord1;
+                        flag = true;
+                    } else if (op == Code.Op.MUL && (ord1.equals("0") || ord2.equals("0"))) {
+                        t = "0";
+                        flag = true;
+                    } else if (op == Code.Op.ADD && (ord1.equals("0") || ord2.equals("0"))) {
+                        t = ord1.equals("0") ? ord2 : ord1;
+                        flag = true;
+                    } else if (op == Code.Op.SUB && ord2.equals("0")) {
+                        t = ord1;
+                        flag = true;
+                    } else if (op == Code.Op.DIV && ord2.equals("1")) {
+                        t = ord1;
+                        flag = true;
+                    }
+                    if (flag) {
+                        if (x == 1) {
+                            nxtCode.clearOrd1(t);
+                        } else {
+                            nxtCode.clearOrd2(t);
+                        }
+                        res.remove(i--);
+                    }
                 }
             }
         }
@@ -277,49 +280,51 @@ public class Block {
                 }
             }
             Symbol def = code.getDef();
-            if ("-0123456789".indexOf(code.getOrd1().charAt(0)) != -1 && "-0123456789".indexOf(code.getOrd2().charAt(0)) != -1) {
-                changed = true;
-                int res = 0;
-                switch (code.getInstr()) {
-                    case ADD:
-                        res = Integer.parseInt(code.getOrd1()) + Integer.parseInt(code.getOrd2());
-                        break;
-                    case SUB:
-                        res = Integer.parseInt(code.getOrd1()) - Integer.parseInt(code.getOrd2());
-                        break;
-                    case MUL:
-                        res = Integer.parseInt(code.getOrd1()) * Integer.parseInt(code.getOrd2());
-                        break;
-                    case DIV:
-                        res = Integer.parseInt(code.getOrd1()) / Integer.parseInt(code.getOrd2());
-                        break;
-                    case MOD:
-                        res = Integer.parseInt(code.getOrd1()) % Integer.parseInt(code.getOrd2());
-                        break;
-                    case EQ:
-                        res = Integer.parseInt(code.getOrd1()) == Integer.parseInt(code.getOrd2()) ? 1 : 0;
-                        break;
-                    case NE:
-                        res = Integer.parseInt(code.getOrd1()) != Integer.parseInt(code.getOrd2()) ? 1 : 0;
-                        break;
-                    case LT:
-                        res = Integer.parseInt(code.getOrd1()) < Integer.parseInt(code.getOrd2()) ? 1 : 0;
-                        break;
-                    case LE:
-                        res = Integer.parseInt(code.getOrd1()) <= Integer.parseInt(code.getOrd2()) ? 1 : 0;
-                        break;
-                    case GT:
-                        res = Integer.parseInt(code.getOrd1()) > Integer.parseInt(code.getOrd2()) ? 1 : 0;
-                        break;
-                    case GE:
-                        res = Integer.parseInt(code.getOrd1()) >= Integer.parseInt(code.getOrd2()) ? 1 : 0;
-                        break;
-                    default:
-                        break;
+            if (MipsGenerator.optimize.get("MidCodeOptimize")) {
+                if ("-0123456789".indexOf(code.getOrd1().charAt(0)) != -1 && "-0123456789".indexOf(code.getOrd2().charAt(0)) != -1) {
+                    changed = true;
+                    int res = 0;
+                    switch (code.getInstr()) {
+                        case ADD:
+                            res = Integer.parseInt(code.getOrd1()) + Integer.parseInt(code.getOrd2());
+                            break;
+                        case SUB:
+                            res = Integer.parseInt(code.getOrd1()) - Integer.parseInt(code.getOrd2());
+                            break;
+                        case MUL:
+                            res = Integer.parseInt(code.getOrd1()) * Integer.parseInt(code.getOrd2());
+                            break;
+                        case DIV:
+                            res = Integer.parseInt(code.getOrd1()) / Integer.parseInt(code.getOrd2());
+                            break;
+                        case MOD:
+                            res = Integer.parseInt(code.getOrd1()) % Integer.parseInt(code.getOrd2());
+                            break;
+                        case EQ:
+                            res = Integer.parseInt(code.getOrd1()) == Integer.parseInt(code.getOrd2()) ? 1 : 0;
+                            break;
+                        case NE:
+                            res = Integer.parseInt(code.getOrd1()) != Integer.parseInt(code.getOrd2()) ? 1 : 0;
+                            break;
+                        case LT:
+                            res = Integer.parseInt(code.getOrd1()) < Integer.parseInt(code.getOrd2()) ? 1 : 0;
+                            break;
+                        case LE:
+                            res = Integer.parseInt(code.getOrd1()) <= Integer.parseInt(code.getOrd2()) ? 1 : 0;
+                            break;
+                        case GT:
+                            res = Integer.parseInt(code.getOrd1()) > Integer.parseInt(code.getOrd2()) ? 1 : 0;
+                            break;
+                        case GE:
+                            res = Integer.parseInt(code.getOrd1()) >= Integer.parseInt(code.getOrd2()) ? 1 : 0;
+                            break;
+                        default:
+                            break;
+                    }
+                    code.clearOrd1(String.valueOf(res));
+                    code.clearOrd2(null);
+                    code.setOp(Code.Op.ASSIGN);
                 }
-                code.clearOrd1(String.valueOf(res));
-                code.clearOrd2(null);
-                code.setOp(Code.Op.ASSIGN);
             }
             if (def != null) defList.add(code);
         }

@@ -1,5 +1,6 @@
 package Middle;
 
+import Backend.MipsGenerator;
 import Error.Error;
 import Error.ErrorTable;
 import Lexer.Token;
@@ -368,7 +369,8 @@ public class Visitor {
         // !!! 空jump
         String whileBeginLabel = MidCodeList.add(Code.Op.JUMP, "(AUTO)", "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, whileBeginLabel, "(EMPTY)", "(EMPTY)");
-        Integer realWhileBeginLabel = ++MidCodeList.labelCounter;
+        Integer realWhileBeginLabel = null;
+        if (MipsGenerator.optimize.get("JumpOptimize")) realWhileBeginLabel = ++MidCodeList.labelCounter;
         // get end
         Integer label = ++MidCodeList.labelCounter;
 
@@ -377,12 +379,14 @@ public class Visitor {
 
         condTravel(whileStmt.getCond(), label, false);
         // !!! 空jump
-        MidCodeList.add(Code.Op.JUMP, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
-        MidCodeList.add(Code.Op.LABEL, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
+        if (MipsGenerator.optimize.get("JumpOptimize")) {
+            MidCodeList.add(Code.Op.JUMP, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
+            MidCodeList.add(Code.Op.LABEL, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
+        }
         stmtTravel(whileStmt.getStmt());
-        condTravel(whileStmt.getCond(), realWhileBeginLabel, true);
+        if (MipsGenerator.optimize.get("JumpOptimize")) condTravel(whileStmt.getCond(), realWhileBeginLabel, true);
         // 空jump
-        MidCodeList.add(Code.Op.JUMP, "(LABEL" + label + ")", "(EMPTY)", "(EMPTY)");
+        MidCodeList.add(Code.Op.JUMP, (MipsGenerator.optimize.get("JumpOptimize")) ? "(LABEL" + label + ")":  whileBeginLabel, "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label + ")", "(EMPTY)", "(EMPTY)");
 
         whileBeginEndLabelStack.pop();
@@ -784,10 +788,13 @@ public class Visitor {
 
     private String expTravel(Exp exp) {
         //if (exp instanceof ConstExp || blockLevel == 0) { // 全局或常数
+        if (MipsGenerator.optimize.get("MidCodeOptimize")) {
             try {
                 return String.valueOf(Calc.calcExp(exp));
-            } catch (Exception ignore) {}
-        // }
+            } catch (Exception ignore) {
+            }
+            // }
+        }
         return addExpTravel(exp.getAddExp());
     }
 

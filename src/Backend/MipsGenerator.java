@@ -25,7 +25,10 @@ public class MipsGenerator {
         put("MulDiv", true);
         put("DeleteDeadCode", true);
         put("PeepHole", true);
-        put("BroadcastCode", true);
+        put("BroadcastCode", true); // const and val both
+        put("TmpRegisterAlloc", true);
+        put("MidCodeOptimize", true);
+        put("JumpOptimize", true);
     }};
 
     public static ArrayList<String> mipsCodeList = new ArrayList<>();
@@ -39,13 +42,15 @@ public class MipsGenerator {
     // private int dataAdd = 0x10010000;
 
     public MipsGenerator(ArrayList<Code> codes) {
-        for (Code code : codes) {
-            String ord1 = hasTmp(code.getOrd1());
-            String ord2 = hasTmp(code.getOrd2());
-            String res = hasTmp(code.getRes());
-            if (ord1 != null) tmpVal2Used.merge(ord1, 1, Integer::sum);
-            if (ord2 != null) tmpVal2Used.merge(ord2, 1, Integer::sum);
-            if (res != null) tmpVal2Used.merge(res, 1, Integer::sum);
+        if (optimize.get("TmpRegisterAlloc")) {
+            for (Code code : codes) {
+                String ord1 = hasTmp(code.getOrd1());
+                String ord2 = hasTmp(code.getOrd2());
+                String res = hasTmp(code.getRes());
+                if (ord1 != null) tmpVal2Used.merge(ord1, 1, Integer::sum);
+                if (ord2 != null) tmpVal2Used.merge(ord2, 1, Integer::sum);
+                if (res != null) tmpVal2Used.merge(res, 1, Integer::sum);
+            }
         }
         for (int i = 0; i < codes.size(); ++i) {
             if (codes.get(i).getInstr() == Code.Op.FUNC) {
@@ -107,9 +112,11 @@ public class MipsGenerator {
         // T0 --> a[T1]
         // xxx
         // saveRegs 单独处理
-        if (sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0 && op == Instruction.LS.Op.sw) {
-            RegAlloc.refreshOne(reg);
-            return;
+        if (optimize.get("TmpRegisterAlloc")) {
+            if (sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0 && op == Instruction.LS.Op.sw) {
+                RegAlloc.refreshOne(reg);
+                return;
+            }
         }
 
         //if (reg == "$v0") System.out.println(sym + " " + sym.getBlockLevel());
@@ -619,18 +626,20 @@ public class MipsGenerator {
     public void saveRegs(Integer codeId, String func) {
         HashMap<String, Pair<Symbol, Integer>> used = RegAlloc.getAllUsed();
         HashSet<Symbol> activeOut = DataFlow.getActiveOut(func, codeId);
+        // System.out.println(activeOut);
+        if (!optimize.get("TmpRegisterAlloc")) activeOut = null;
         for (String reg : used.keySet()) {
             // 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
             Symbol sym = RegAlloc.regMap.get(reg).getKey();
             if (sym.getBlockLevel() != 0 && (activeOut == null || activeOut.contains(sym))) {
                 if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
                     // 处理临时变量，且该变量使用超过一次
-                    if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
+                    if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
                         pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
                     }
                 }
             }
-            if (!(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
+            if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
         }
     }
 
@@ -701,9 +710,11 @@ public class MipsGenerator {
             String o1 = hasTmp(ord1);
             String o2 = hasTmp(ord2);
             String r = hasTmp(res);
-            if (o1 != null) tmpVal2Used.merge(o1, -1, Integer::sum);
-            if (o2 != null) tmpVal2Used.merge(o2, -1, Integer::sum);
-            if (r != null) tmpVal2Used.merge(r, -1, Integer::sum);
+            if (optimize.get("TmpRegisterAlloc")) {
+                if (o1 != null) tmpVal2Used.merge(o1, -1, Integer::sum);
+                if (o2 != null) tmpVal2Used.merge(o2, -1, Integer::sum);
+                if (r != null) tmpVal2Used.merge(r, -1, Integer::sum);
+            }
             // def: arr_def 和 end_arr_def 直接跳过即可
             if (op == Code.Op.DEF_VAL) {
                 RegAlloc.allocFreeOne(code.getSymbolRes(), 0);
@@ -769,17 +780,19 @@ public class MipsGenerator {
                 }
             }
             // 释放临时变量所占据的寄存器
-            if (o1 != null && tmpVal2Used.get(o1) == 0) {
-                String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
-                if (reg != null) RegAlloc.refreshOne(reg);
-            }
-            if (o2 != null && tmpVal2Used.get(o2) == 0) {
-                String reg = RegAlloc.find(code.getSymbolOrd2(), 0);
-                if (reg != null) RegAlloc.refreshOne(reg);
-            }
-            if (r != null && tmpVal2Used.get(r) == 0) {
-                String reg = RegAlloc.find(code.getSymbolRes(), 0);
-                if (reg != null) RegAlloc.refreshOne(reg);
+            if (optimize.get("TmpRegisterAlloc")) {
+                if (o1 != null && tmpVal2Used.get(o1) == 0) {
+                    String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
+                    if (reg != null) RegAlloc.refreshOne(reg);
+                }
+                if (o2 != null && tmpVal2Used.get(o2) == 0) {
+                    String reg = RegAlloc.find(code.getSymbolOrd2(), 0);
+                    if (reg != null) RegAlloc.refreshOne(reg);
+                }
+                if (r != null && tmpVal2Used.get(r) == 0) {
+                    String reg = RegAlloc.find(code.getSymbolRes(), 0);
+                    if (reg != null) RegAlloc.refreshOne(reg);
+                }
             }
         }
     }

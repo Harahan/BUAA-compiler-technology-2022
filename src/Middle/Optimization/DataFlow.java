@@ -1,5 +1,6 @@
 package Middle.Optimization;
 
+import Backend.MipsGenerator;
 import Middle.Util.Code;
 import Middle.Util.Code.Op;
 import Symbol.Symbol;
@@ -37,31 +38,33 @@ public class DataFlow {
             if (code.getInstr() == Op.FUNC) break;
             global.add(code);
         }
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP) {
-                codes.remove(i + 1);
+        if (MipsGenerator.optimize.get("JumpOptimize")) {
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP) {
+                    codes.remove(i + 1);
+                }
             }
-        }
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.LABEL
-                    && codes.get(i).getOrd1().equals(codes.get(i + 1).getOrd1()) && i - 1 >= 0 && Code.jump.contains(codes.get(i - 1).getInstr())) {
-                codes.remove(i);
-                --i;
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.LABEL
+                        && codes.get(i).getOrd1().equals(codes.get(i + 1).getOrd1()) && i - 1 >= 0 && Code.jump.contains(codes.get(i - 1).getInstr())) {
+                    codes.remove(i);
+                    --i;
+                }
             }
-        }
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getInstr() == Op.EQZ_JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP
-                    && i + 2 < codes.size() && codes.get(i + 2).getInstr() == Op.LABEL && codes.get(i).getRes().equals(codes.get(i + 2).getOrd1())) {
-                codes.get(i).setOp(Op.NEZ_JUMP);
-                codes.get(i).clearRes(codes.get(i + 1).getOrd1());
-                codes.remove(i + 1);
-                --i;
-            } else if (codes.get(i).getInstr() == Op.NEZ_JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP
-                    && i + 2 < codes.size() && codes.get(i + 2).getInstr() == Op.LABEL && codes.get(i).getRes().equals(codes.get(i + 2).getOrd1())) {
-                codes.get(i).setOp(Op.EQZ_JUMP);
-                codes.get(i).clearRes(codes.get(i + 1).getOrd1());
-                codes.remove(i + 1);
-                --i;
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).getInstr() == Op.EQZ_JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP
+                        && i + 2 < codes.size() && codes.get(i + 2).getInstr() == Op.LABEL && codes.get(i).getRes().equals(codes.get(i + 2).getOrd1())) {
+                    codes.get(i).setOp(Op.NEZ_JUMP);
+                    codes.get(i).clearRes(codes.get(i + 1).getOrd1());
+                    codes.remove(i + 1);
+                    --i;
+                } else if (codes.get(i).getInstr() == Op.NEZ_JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP
+                        && i + 2 < codes.size() && codes.get(i + 2).getInstr() == Op.LABEL && codes.get(i).getRes().equals(codes.get(i + 2).getOrd1())) {
+                    codes.get(i).setOp(Op.EQZ_JUMP);
+                    codes.get(i).clearRes(codes.get(i + 1).getOrd1());
+                    codes.remove(i + 1);
+                    --i;
+                }
             }
         }
         for (int i = 0; i < codes.size(); ++i) {

@@ -51,7 +51,6 @@ public class Compiler {
             return;
         }
         DataFlow dataFlow = new DataFlow(MidCodeList.codes);
-        // dataFlow.printGraph();
         write(MidCodeList.printMidCode(), "ir.txt");
         dataFlow.divideBlock();
         dataFlow.arriveDataAnalysis();
