@@ -183,6 +183,38 @@ public class Block {
             } else if (code.getInstr() == Code.Op.JUMP && i + 1 < res.size() && res.get(i + 1).getInstr() == Code.Op.JUMP) {
                 flag = true;
                 res.remove(i + 1);
+            } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN && i + 1 < codes.size() &&
+                    (code.getRes().equals(codes.get(i + 1).getOrd1()) || code.getRes().equals(codes.get(i + 1).getOrd2()))) {
+                Code.Op op = code.getInstr();
+                String ord1 = code.getOrd1();
+                String ord2 = code.getOrd2();
+                Code nxtCode = codes.get(i + 1);
+                String t = null;
+                int x = code.getRes().equals(codes.get(i + 1).getOrd1()) ? 1 : 2;
+                if (op == Code.Op.MUL && (ord1.equals("1") || ord2.equals("1"))) {
+                    t = ord1.equals("1") ? ord2 : ord1;
+                    flag = true;
+                } else if (op == Code.Op.MUL && (ord1.equals("0") || ord2.equals("0"))) {
+                    t = "0";
+                    flag = true;
+                } else if (op == Code.Op.ADD && (ord1.equals("0") || ord2.equals("0"))) {
+                    t = ord1.equals("0") ? ord2 : ord1;
+                    flag = true;
+                } else if (op == Code.Op.SUB && ord2.equals("0")) {
+                    t = ord1;
+                    flag = true;
+                } else if (op == Code.Op.DIV && ord2.equals("1")) {
+                    t = ord1;
+                    flag = true;
+                }
+                if (flag) {
+                    if (x == 1) {
+                        nxtCode.clearOrd1(t);
+                    } else {
+                        nxtCode.clearOrd2(t);
+                    }
+                    res.remove(i--);
+                }
             }
         }
         // System.out.println(res);

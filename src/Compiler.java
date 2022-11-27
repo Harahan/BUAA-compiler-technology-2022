@@ -64,6 +64,6 @@ public class Compiler {
         }
         MidCodeList.codes = dataFlow.getCodes();
         write(MidCodeList.printMidCode(), "ir_opt.txt");
-        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(), "mips.txt");
+        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(false), "mips.txt");
     }
 }

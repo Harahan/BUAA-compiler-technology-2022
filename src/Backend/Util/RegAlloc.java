@@ -3,7 +3,7 @@ package Backend.Util;
 import Backend.MipsGenerator;
 import Symbol.Symbol;
 import Symbol.FuncFormParam;
-import Symbol.Num;
+
 import java.util.HashMap;
 import java.util.Objects;
 
@@ -69,9 +69,9 @@ public class RegAlloc {
         // if (availableRegs[ptr].equals(o)) ++ptr;
         String reg = availableRegs[ptr];
         Pair<Symbol, Integer> p = regMap.get(reg);
-        if (p != null && !(p.getKey() instanceof Num)) {
+        if (p != null) {
             regMap.put(reg, null);
-            if (!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) {
+            if ((!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) && p.getKey().getBlockLevel() != 0) {
                 MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
                 MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
             }

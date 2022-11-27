@@ -11,7 +11,6 @@ import Middle.Visitor;
 import Symbol.Symbol;
 import Symbol.SymbolTable;
 import Symbol.FuncFormParam;
-import Symbol.Num;
 import Symbol.Func;
 import Symbol.Tmp;
 import Symbol.Val;
@@ -408,7 +407,6 @@ public class MipsGenerator {
             }
             mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, ans)));
         } else {
-
             // mul optimize
             if (op == Code.Op.MUL && optimize.get("MulDiv")) {
                 boolean tag = false;
@@ -422,29 +420,31 @@ public class MipsGenerator {
                     tag = true;
                 } else if (symbolOrd2 == null) {
                     num = Integer.valueOf(ord2);
-                    symbolVal =symbolOrd1;
+                    symbolVal = symbolOrd1;
                     val = ord1;
                     tag = true;
                 }
-
                 if (tag) {
                     if (num == 0) {
                         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, 0)));
-                        RegAlloc.mandatorySet(regRes, symbolRes, 0);
-                        return;
+                    } else {
+                        String x = RegAlloc.find(symbolVal, 0);
+                        if (x == null) {
+                            x = RegAlloc.mandatoryAllocOne(regRes, symbolVal, 0, false);
+                            loadLVal(x, val);
+                            RegAlloc.mandatorySet(x, symbolVal, 0);
+                        }
+                        if (num == -1) {
+                            mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.neg, regRes, x)));
+                            RegAlloc.mandatorySet(regRes, symbolRes, 0);
+                            return;
+                        }
+                        mipsCodeList.addAll(MulDiv.mul(regRes, x, num, 4));
                     }
-                    String x = RegAlloc.find(symbolVal, 0);
-                    if (x == null) {
-                        x = RegAlloc.mandatoryAllocOne(regRes, symbolVal, 0, false);
-                        loadLVal(x, val);
-                        RegAlloc.mandatorySet(x, symbolVal, 0);
-                    }
-                    mipsCodeList.addAll(MulDiv.mul(regRes, x, num, 4));
                     RegAlloc.mandatorySet(regRes, symbolRes, 0);
                     return;
                 }
             }
-
             // div optimize
             if ((op == Code.Op.DIV || op == Code.Op.MOD) && symbolOrd2 == null && optimize.get("MulDiv")) {
                 int d = Integer.parseInt(ord2);
@@ -458,8 +458,6 @@ public class MipsGenerator {
                 RegAlloc.mandatorySet(regRes, symbolRes, 0);
                 return;
             }
-
-
             // 零维变量 @ 零维变量
             String regOrd1 = null, regOrd2 = null;
             int tag = 0;
@@ -475,7 +473,7 @@ public class MipsGenerator {
             } else if (!ord1.equals("0")) {
                  //System.out.println(ord1 + " " + op);
                 if (op != Code.Op.ADD) {
-                    regOrd1 = RegAlloc.mandatoryAllocOne(new Num(ord1), 0, true);
+                    regOrd1 = "$a0";
                     mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd1, Integer.valueOf(ord1))));
                 } else {
                     tag = 1;
@@ -484,7 +482,7 @@ public class MipsGenerator {
                 regOrd1 = "$zero";
             }
             // ord2
-            /**冲突*/
+            /*冲突*/
             if (symbolOrd2 != null) {
                 regOrd2 = RegAlloc.find(symbolOrd2, 0);
                 if (regOrd2 == null) {
@@ -495,7 +493,7 @@ public class MipsGenerator {
                 }
             } else if (op != Code.Op.NOT && !ord1.equals("0")) { // !!!
                 if (op != Code.Op.SUB && op != Code.Op.ADD) {
-                    regOrd2 = RegAlloc.mandatoryAllocOne(regOrd1, new Num(ord2), 0, true);
+                    regOrd2 = "$a0";
                     mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd2, Integer.valueOf(ord2))));
                 } else {
                     tag = 2;
@@ -553,7 +551,6 @@ public class MipsGenerator {
                     reg = regOrd1;
                     num = Integer.valueOf(ord2);
                 }
-                System.out.println(op + " " + regRes + " " + reg + " " + num);
                 switch (op) {
                     case ADD:
                         mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, regRes, reg, num)));
@@ -579,10 +576,7 @@ public class MipsGenerator {
             if (reg == null) {
                 reg = RegAlloc.mandatoryAllocOne(paramSymbol, 0, false);
                 loadLVal(reg, param);
-                // RegAlloc.mandatorySet(reg, paramSymbol, 0);
             }
-            //if (Objects.equals(param, "res(1,3)"))System.out.println(reg);
-            // mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.sw, reg, null, cnt * 4, "$sp")));
         } else {
             reg = "$a1";
             Matcher m = Code.indexPattern.matcher(param);
@@ -654,7 +648,6 @@ public class MipsGenerator {
     // 3            1 <-- sp
     public void translate() {
         mipsCodeList.add(".data");
-
         // global arr
         int addr = 0;
         for (Symbol sym : Visitor.global.getOrderSymbols()) {
@@ -687,7 +680,6 @@ public class MipsGenerator {
         for (String reg : RegAlloc.regMap.keySet()) {
             RegAlloc.refreshOne(reg);
         }
-
         // translate
         Func func = (Func) funCodeList.get(0).getSymbolOrd1();
         mipsCodeList.add("\n");
@@ -698,15 +690,13 @@ public class MipsGenerator {
             mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.sw, "$ra", null, func.getFuncTable().totSize + 31 * 4, "$sp")));
         }
         int paraNum = 0;
-        /**函数调用嵌套*/
+        /*函数调用嵌套*/
         Stack<Func> callFunc = new Stack<>();
-        // Stack<ArrayList<Pair<Pair<Symbol, String>, Boolean>>> paramsStack = new Stack<>();
         for (int i = 1; i < funCodeList.size(); ++i) {
             mipsCodeList.add("\n#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
             String ord1 = code.getOrd1(), ord2 = code.getOrd2(), res = code.getRes();
-
             // 标记临时变量的使用次数
             String o1 = hasTmp(ord1);
             String o2 = hasTmp(ord2);
@@ -714,13 +704,10 @@ public class MipsGenerator {
             if (o1 != null) tmpVal2Used.merge(o1, -1, Integer::sum);
             if (o2 != null) tmpVal2Used.merge(o2, -1, Integer::sum);
             if (r != null) tmpVal2Used.merge(r, -1, Integer::sum);
-
             // def: arr_def 和 end_arr_def 直接跳过即可
             if (op == Code.Op.DEF_VAL) {
-
                 RegAlloc.allocFreeOne(code.getSymbolRes(), 0);
                 if (!ord1.equals("(EMPTY)")) saveLVal(ord1, res);
-
             } else if (op == Code.Op.ASSIGN) {
                 if (Objects.equals(ord1, "(RT)")) ord1 = "$v0";
                 saveLVal(ord1, res);
@@ -730,31 +717,23 @@ public class MipsGenerator {
                     if (reg != null) pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
                 }
             } else if (Code.io.contains(op)) {
-
                 if (op == Code.Op.GET_INT) getInt(res);
                 else if (op == Code.Op.PRINT_INT) printInt(ord1);
                 else printStr(ord1);
-
             } else if (Code.alu.contains(op)) { // not没有
-
                 alu(op, res, ord1, ord2, code.getSymbolRes(), code.getSymbolOrd1(), code.getSymbolOrd2());
                 // !!! 写回内存
                 if (code.getSymbolRes() != null && code.getSymbolRes().getDim() == 0 && code.getSymbolRes().getBlockLevel() == 0) {
                     String reg = RegAlloc.find(code.getSymbolRes(), 0);
                     if (reg != null) pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
                 }
-
             } else if (Code.func.contains(op)) {
-
                 if (op == Code.Op.PREPARE_CALL) {
                     mipsCodeList.add("");
                     callFunc.push((Func) code.getSymbolOrd1());
-                    // paramsStack.add(new ArrayList<Pair<Pair<Symbol, String>, Boolean>>());
                 } else if (op == Code.Op.PUSH_PAR_INT) {
-                    // paramsStack.lastElement().add(new Pair<Pair<Symbol, String>, Boolean>(new Pair<Symbol, String>(code.getSymbolOrd1(), ord1), false));
                     pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), false, callFunc.lastElement().getFuncTable().totSize);
                 } else if (op == Code.Op.PUSH_PAR_ADDR) {
-                    // paramsStack.lastElement().add(new Pair<Pair<Symbol, String>, Boolean>(new Pair<Symbol, String>(code.getSymbolOrd1(), ord1), true));
                     pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), true, callFunc.lastElement().getFuncTable().totSize);
                 } else if (op == Code.Op.RETURN) {
                     if (func.getName().startsWith("main")) {
@@ -765,10 +744,6 @@ public class MipsGenerator {
                     }
                 } else if (op == Code.Op.CALL) {
                     paraNum = 0;
-                    //ArrayList<Pair<Pair<Symbol, String>, Boolean>> params = paramsStack.pop();
-                    //for (Pair<Pair<Symbol, String>, Boolean> p : params) {
-                    //    pushIntoStack(paraNum++, p.getKey().getValue(), p.getKey().getKey(), p.getValue(), callFunc.lastElement().getFuncTable().totSize);
-                    //}
                     saveRegs(null, null);
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", -callFunc.lastElement().getFuncTable().totSize - 32 * 4)));
                     mipsCodeList.add("jal " +  getName(callFunc.lastElement()));
@@ -776,10 +751,6 @@ public class MipsGenerator {
                     mipsCodeList.add("");
                     callFunc.pop();
                 }
-                //else if (op == Code.Op.FUNC_END) {
-                //    returnFromFunc(null, func.getFuncTable().totSize);
-                // }
-
             } else if (Code.jump.contains(op)) {
                 // 跳转前压栈（部分执行？）
                 if (op == Code.Op.JUMP) {
@@ -794,11 +765,9 @@ public class MipsGenerator {
                     }
                     mipsCodeList.add(String.valueOf(new Instruction.ML(op == Code.Op.EQZ_JUMP ? Instruction.ML.Op.beqz : Instruction.ML.Op.bnez, reg, res.substring(1, res.length() - 1))));
                 }  else if (op == Code.Op.LABEL) {
-                    // saveRegs();
                     mipsCodeList.add(ord1.substring(1, ord1.length() - 1) + ":");
                 }
             }
-
             // 释放临时变量所占据的寄存器
             if (o1 != null && tmpVal2Used.get(o1) == 0) {
                 String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
@@ -815,9 +784,12 @@ public class MipsGenerator {
         }
     }
 
-    public String printMipsCode() {
+    public String printMipsCode(boolean notation) {
         StringBuilder sb = new StringBuilder();
-        for (String s : mipsCodeList) sb.append(s).append("\n");
+        for (String s : mipsCodeList) {
+            if (!notation && (s.startsWith("#") || s.startsWith("\n") || s.length() == 0)) continue;
+            sb.append(s).append("\n");
+        }
         return sb.toString();
     }
 }

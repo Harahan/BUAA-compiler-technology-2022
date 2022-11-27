@@ -7,7 +7,7 @@ public class PeepHole {
     public static void peepHole(ArrayList<String> codes) {
         for (int i = 0; i < codes.size(); ++i) {
             String code = codes.get(i);
-            if (code.startsWith("move ")) {;
+            if (code.startsWith("move ")) {
                 String[] tokens = code.split(" ");
                 // System.out.println(code);
                 if (tokens[1].equals(tokens[2])) {
