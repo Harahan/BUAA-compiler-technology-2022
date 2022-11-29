@@ -80,7 +80,7 @@ public class Calc {
         // 随便乱找的数
         if (!x) throw new Exception();
         Symbol sym = Visitor.curTable.get(ident.getStrVal(), true);
-        if (!sym.isConst() || !(sym instanceof Val) || !sym.isConst()) throw new Exception();
+        if (!sym.isConst() && !(Visitor.curTable.getBlockLevel() == 0)) throw new Exception();
         ArrayList<Integer> arr = new ArrayList<>();
         for (Index index : lVal.getIndexes()) arr.add(calcExp(index.getExp()));
         return ((Val) sym).getVal(arr);

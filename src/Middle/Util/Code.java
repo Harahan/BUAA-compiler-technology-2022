@@ -154,6 +154,7 @@ public class Code {
             else if (instr == Op.JUMP) return instr + " " + ord1;
             else if (instr == Op.EQZ_JUMP || instr == Op.NEZ_JUMP) return instr + " " + ord1 + " " + res;
         }
+        if (instr == Op.NOP) return "NOP";
         return null;
     }
 
@@ -251,6 +252,7 @@ public class Code {
         if (matcherRes.matches() && Visitor.str2Symbol.containsKey(matcherRes.group(1))) use.put(Visitor.str2Symbol.get(matcherRes.group(1)), 4);
         if (matcherOrd1.matches() && Visitor.str2Symbol.containsKey(matcherOrd1.group(1))) use.put(Visitor.str2Symbol.get(matcherOrd1.group(1)), 2);
         if (matcherOrd2.matches() && Visitor.str2Symbol.containsKey(matcherOrd2.group(1))) use.put(Visitor.str2Symbol.get(matcherOrd2.group(1)), 3);
+        // System.out.println("use: " + use);
         return use;
     }
 

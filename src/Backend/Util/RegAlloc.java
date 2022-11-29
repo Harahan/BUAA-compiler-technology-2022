@@ -64,17 +64,23 @@ public class RegAlloc {
      * 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
      */
     public static String mandatoryAllocOne(Symbol sym, Integer off, boolean set) {
-        ++ptr;
-        if (ptr == availableRegs.length) ptr = 0;
-        // if (availableRegs[ptr].equals(o)) ++ptr;
+        int x = ptr;
+        ptr = (ptr + 1) % availableRegs.length;
+        while (ptr != x && regMap.get(availableRegs[ptr]) != null) ptr = (ptr + 1) % availableRegs.length;
+        if (regMap.get(availableRegs[ptr]) == null) {
+            if (set) {
+                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
+                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
+            }
+            return availableRegs[ptr];
+        }
+        ptr = (ptr + 1) % availableRegs.length;
         String reg = availableRegs[ptr];
         Pair<Symbol, Integer> p = regMap.get(reg);
-        if (p != null) {
-            regMap.put(reg, null);
-            if ((!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) && p.getKey().getBlockLevel() != 0) {
-                MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
-                MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
-            }
+        regMap.put(reg, null);
+        if ((!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) && p.getKey().getBlockLevel() != 0) {
+            MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
+            MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
         }
         if (set) {
             regMap.put(reg, new Pair<>(sym, off));
@@ -84,8 +90,15 @@ public class RegAlloc {
     }
 
     public static String mandatoryAllocOne(String o, Symbol sym, Integer off, boolean set) {
-        int nxt = ((ptr == availableRegs.length - 1) ? 0 : (ptr + 1));
-        if (availableRegs[nxt].equals(o)) ptr = nxt;
+        int nxt = (ptr + 1) % availableRegs.length;
+        boolean flag = true;
+        for (String reg : availableRegs) {
+            if (regMap.get(reg) == null) {
+                flag = false;
+                break;
+            }
+        }
+        if (availableRegs[nxt].equals(o) && flag) ptr = nxt;
         return mandatoryAllocOne(sym, off, set);
     }
 
@@ -104,12 +117,13 @@ public class RegAlloc {
     }
 
     public static void allocFreeOne(Symbol sym, Integer off) {
-        ++ptr;
-        if (ptr == availableRegs.length) ptr = 0;
-        String reg = availableRegs[ptr];
-        Pair<Symbol, Integer> p = regMap.get(reg);
-        if (p != null) return;
-        regMap.put(reg, new Pair<>(sym, off));
+        int x = ptr;
+        ptr = (ptr + 1) % availableRegs.length;
+        while (ptr != x && regMap.get(availableRegs[ptr]) != null) ptr = (ptr + 1) % availableRegs.length;
+        if (regMap.get(availableRegs[ptr]) == null) {
+            MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
+            regMap.put(availableRegs[ptr], new Pair<>(sym, off));
+        }
     }
 
     public static String find(Symbol sym, Integer off) {

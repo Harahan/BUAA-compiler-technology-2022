@@ -19,6 +19,7 @@ import Backend.Util.RegAlloc.Pair;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class MipsGenerator {
     public static HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
@@ -38,8 +39,6 @@ public class MipsGenerator {
     public static HashMap<String, Integer> tmpVal2Used = new HashMap<>();
 
     public static final Pattern tempPattern = Pattern.compile(".*\\(T(\\d+)\\).*");
-    // private int pos = 0;
-    // private int dataAdd = 0x10010000;
 
     public MipsGenerator(ArrayList<Code> codes) {
         if (optimize.get("TmpRegisterAlloc")) {
@@ -625,9 +624,10 @@ public class MipsGenerator {
      */
     public void saveRegs(Integer codeId, String func) {
         HashMap<String, Pair<Symbol, Integer>> used = RegAlloc.getAllUsed();
-        HashSet<Symbol> activeOut = DataFlow.getActiveOut(func, codeId);
+        HashSet<Symbol> activeOut;
         // System.out.println(activeOut);
         if (!optimize.get("TmpRegisterAlloc")) activeOut = null;
+        else activeOut = DataFlow.getActiveOut(func, codeId);
         for (String reg : used.keySet()) {
             // 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
             Symbol sym = RegAlloc.regMap.get(reg).getKey();
@@ -635,11 +635,12 @@ public class MipsGenerator {
                 if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
                     // 处理临时变量，且该变量使用超过一次
                     if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
+                        mipsCodeList.add("# " + reg + ": " + sym.getName() + " ---> MEM");
                         pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
                     }
                 }
             }
-            if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
+            //if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
         }
     }
 
@@ -686,9 +687,9 @@ public class MipsGenerator {
 
     public void translateFunc(ArrayList<Code> funCodeList) {
         // refresh all regs
-        for (String reg : RegAlloc.regMap.keySet()) {
-            RegAlloc.refreshOne(reg);
-        }
+        //for (String reg : RegAlloc.regMap.keySet()) {
+        //    RegAlloc.refreshOne(reg);
+        //}
         // translate
         Func func = (Func) funCodeList.get(0).getSymbolOrd1();
         mipsCodeList.add("\n");
@@ -701,11 +702,25 @@ public class MipsGenerator {
         int paraNum = 0;
         /*函数调用嵌套*/
         Stack<Func> callFunc = new Stack<>();
+        HashSet<Integer> blockEnd = DataFlow.getBlockEnd(func.getNickname());
+        HashSet<Integer> blockBegin = DataFlow.getBlockBegin(func.getNickname());
+        //System.out.println("blockEnd: " + blockEnd.stream().sorted().collect(Collectors.toList()));
+        //System.out.println("blockBegin: " + blockBegin.stream().sorted().collect(Collectors.toList()));
         for (int i = 1; i < funCodeList.size(); ++i) {
             mipsCodeList.add("\n#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
             String ord1 = code.getOrd1(), ord2 = code.getOrd2(), res = code.getRes();
+
+            if (blockBegin.contains(i)) {
+                for (String reg : RegAlloc.regMap.keySet()) {
+                    RegAlloc.refreshOne(reg);
+                }
+            }
+            if (blockEnd.contains(i) && op != Code.Op.RETURN && op != Code.Op.FUNC_END && Code.jump.contains(op) && op != Code.Op.LABEL) {
+                saveRegs(i, func.getNickname());
+            }
+
             // 标记临时变量的使用次数
             String o1 = hasTmp(ord1);
             String o2 = hasTmp(ord2);
@@ -756,6 +771,9 @@ public class MipsGenerator {
                 } else if (op == Code.Op.CALL) {
                     paraNum = 0;
                     saveRegs(null, null);
+                    for (String reg : RegAlloc.regMap.keySet()) {
+                        RegAlloc.refreshOne(reg);
+                    }
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", -callFunc.lastElement().getFuncTable().totSize - 32 * 4)));
                     mipsCodeList.add("jal " +  getName(callFunc.lastElement()));
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", 32 * 4 + callFunc.lastElement().getFuncTable().totSize)));
@@ -765,10 +783,10 @@ public class MipsGenerator {
             } else if (Code.jump.contains(op)) {
                 // 跳转前压栈（部分执行？）
                 if (op == Code.Op.JUMP) {
-                    saveRegs(i, func.getNickname());
+                    // saveRegs(i, func.getNickname());
                     mipsCodeList.add(String.valueOf(new Instruction.L(Instruction.L.Op.j, ord1.substring(1, ord1.length() - 1))));
                 } else if (op == Code.Op.EQZ_JUMP || op == Code.Op.NEZ_JUMP) {
-                    saveRegs(i, func.getNickname());
+                    // saveRegs(i, func.getNickname());
                     String reg = RegAlloc.find(code.getSymbolOrd1(), 0);
                     if (reg == null) {
                         loadLVal("$a1", ord1);
@@ -793,6 +811,10 @@ public class MipsGenerator {
                     String reg = RegAlloc.find(code.getSymbolRes(), 0);
                     if (reg != null) RegAlloc.refreshOne(reg);
                 }
+            }
+
+            if (blockEnd.contains(i) && op != Code.Op.RETURN && op != Code.Op.FUNC_END && (!Code.jump.contains(op) || op == Code.Op.LABEL)) {
+                saveRegs(i, func.getNickname());
             }
         }
     }

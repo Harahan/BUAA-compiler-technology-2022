@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static Middle.Util.Code.block;
 import static Middle.Util.Code.io;
 
 public class Block {
@@ -102,10 +103,12 @@ public class Block {
     }
 
     public ArrayList<Code> deleteDeadCode() {
+        int sz = codes.size();
         ArrayList<Code> newCodes = new ArrayList<>();
         HashSet<Symbol> live = new HashSet<>();
         activeOut.forEach(meta -> live.add(meta.getSymbol()));
         // System.out.println(live);
+        // System.out.println(live + " " + codes);
         for (int i = codes.size() - 1; i >= 0; --i) {
             Code code = codes.get(i);
             // 注意全局变量的处理
@@ -118,27 +121,31 @@ public class Block {
             } else if (code.getDef() != null && !live.contains(code.getDef()) && code.getInstr() == Code.Op.GET_INT) {
                 code.clearRes(null);
                 newCodes.add(code);
+            } else {
+                //System.out.println("delete dead code: " + code);
             }
         }
         // reverse newCodes
         ArrayList<Code> res = new ArrayList<>();
         for (int i = newCodes.size() - 1; i >= 0; --i) res.add(newCodes.get(i));
         boolean flag = false;
-        int sz = res.size();
+        // System.out.println(res);
         if (MipsGenerator.optimize.get("MidCodeOptimize")) {
             for (int i = 0; i < res.size(); ++i) {
                 Code code = res.get(i);
+                // if (code.getRes().equals("(LABEL2)")) System.out.println("====" + res);
                 if (code.getInstr() == Code.Op.EQZ_JUMP && i - 1 >= 0 && res.get(i - 1).getInstr() == Code.Op.ASSIGN
                         && "-0123456789".indexOf(res.get(i - 1).getOrd1().charAt(0)) != -1
                         && res.get(i - 1).getRes().equals(code.getOrd1())) {
                     flag = true;
                     int x = Integer.parseInt(res.get(i - 1).getOrd1());
-                    res.remove(--i);
+                    // res.remove(--i);
                     if (x == 0) {
                         code.setOp(Code.Op.JUMP);
                         code.clearOrd1(code.getRes());
                         code.clearOrd2(null);
                         code.clearRes(null);
+                        // System.out.println("optimize: " + code);
                         --i;
                     } else {
                         res.remove(i--);
@@ -148,12 +155,13 @@ public class Block {
                         && res.get(i - 1).getRes().equals(code.getOrd1())) {
                     flag = true;
                     int x = Integer.parseInt(res.get(i - 1).getOrd1());
-                    res.remove(--i);
+                    // res.remove(--i);
                     if (x != 0) {
                         code.setOp(Code.Op.JUMP);
                         code.clearOrd1(code.getRes());
                         code.clearOrd2(null);
                         code.clearRes(null);
+                        // System.out.println(code);
                         --i;
                     } else {
                         res.remove(i--);
@@ -166,11 +174,13 @@ public class Block {
                         code.clearOrd1(code.getRes());
                         code.clearOrd2(null);
                         code.clearRes(null);
+                        // System.out.println(code);
                         --i;
                     } else {
                         res.remove(i--);
                     }
                 } else if (code.getInstr() == Code.Op.NEZ_JUMP && "-0123456789".indexOf(code.getOrd1().charAt(0)) != -1) {
+                    //System.out.println(code);
                     flag = true;
                     int x = Integer.parseInt(code.getOrd1());
                     if (x != 0) {
@@ -178,6 +188,7 @@ public class Block {
                         code.clearOrd1(code.getRes());
                         code.clearOrd2(null);
                         code.clearRes(null);
+                        // System.out.println(code);
                         --i;
                     } else {
                         res.remove(i--);
@@ -185,43 +196,48 @@ public class Block {
                 } else if (code.getInstr() == Code.Op.JUMP && i + 1 < res.size() && res.get(i + 1).getInstr() == Code.Op.JUMP) {
                     flag = true;
                     res.remove(i + 1);
-                } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN && i + 1 < codes.size() &&
-                        (code.getRes().equals(codes.get(i + 1).getOrd1()) || code.getRes().equals(codes.get(i + 1).getOrd2()))) {
+                } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN && i + 1 < res.size() &&
+                        (code.getRes().equals(res.get(i + 1).getOrd1()) || code.getRes().equals(res.get(i + 1).getOrd2()))) {
                     Code.Op op = code.getInstr();
                     String ord1 = code.getOrd1();
                     String ord2 = code.getOrd2();
-                    Code nxtCode = codes.get(i + 1);
+                    Code nxtCode = res.get(i + 1);
                     String t = null;
-                    int x = code.getRes().equals(codes.get(i + 1).getOrd1()) ? 1 : 2;
+                    boolean tag = false;
+                    int x = code.getRes().equals(res.get(i + 1).getOrd1()) ? 1 : 2;
                     if (op == Code.Op.MUL && (ord1.equals("1") || ord2.equals("1"))) {
                         t = ord1.equals("1") ? ord2 : ord1;
-                        flag = true;
+                        tag = true;
                     } else if (op == Code.Op.MUL && (ord1.equals("0") || ord2.equals("0"))) {
                         t = "0";
-                        flag = true;
+                        tag = true;
                     } else if (op == Code.Op.ADD && (ord1.equals("0") || ord2.equals("0"))) {
                         t = ord1.equals("0") ? ord2 : ord1;
-                        flag = true;
+                        tag = true;
                     } else if (op == Code.Op.SUB && ord2.equals("0")) {
                         t = ord1;
-                        flag = true;
+                        tag = true;
                     } else if (op == Code.Op.DIV && ord2.equals("1")) {
                         t = ord1;
-                        flag = true;
+                        tag = true;
                     }
-                    if (flag) {
-                        if (x == 1) {
+                    if (tag) {
+                        if (x == 1 && !nxtCode.getOrd1().equals(t)) {
+                            flag = true;
                             nxtCode.clearOrd1(t);
-                        } else {
+                        } else if (!nxtCode.getOrd2().equals(t)) {
+                            flag = true;
                             nxtCode.clearOrd2(t);
                         }
-                        res.remove(i--);
                     }
                 }
             }
         }
-        // System.out.println(res);
-        if (flag && res.size() == sz) codes.add(new Code(Code.Op.NOP, "(EMPTY)", "(EMPTY)", "(EMPTY)"));
+        if (flag && res.size() == sz) {
+            //System.out.println(codes);
+            res.add(new Code(Code.Op.NOP, "(EMPTY)", "(EMPTY)", "(EMPTY)"));
+            // System.out.println(res);
+        }
         codes = res;
         return res;
     }
@@ -231,6 +247,7 @@ public class Block {
         ArrayList<Code> defList = new ArrayList<>();
         for (Code code : codes) {
             for (Symbol symbol : code.getUse().keySet()) {
+                if (symbol.getBlockLevel() == 0) continue;
                 Code p = null;
                 int i = defList.size() - 1;
                 boolean flag = false;
@@ -246,25 +263,27 @@ public class Block {
                     if ((p.getInstr() == Code.Op.ASSIGN  || p.getInstr() == Code.Op.DEF_VAL) && p.getSymbolOrd1() == null
                             && !Objects.equals(p.getOrd1(), "(RT)") && !Objects.equals(p.getOrd1(), "(EMPTY)")) {
                         code.reSet(code.getUse().get(symbol), p.getOrd1(), null);
+                        // System.out.println(code);
                         changed = true;
                     }
                     // broadcast var
                     else if ((p.getInstr() == Code.Op.ASSIGN || p.getInstr() == Code.Op.DEF_VAL) && p.getSymbolOrd1() != null
-                            && p.getSymbolOrd1().getBlockLevel() != 0 && p.getSymbolOrd1().getDim() == 0) {
+                            && p.getSymbolOrd1().getBlockLevel() != 0 && p.getSymbolOrd1().getDim() == 0 && !symbol.equals(p.getSymbolOrd1())) {
+                        boolean tag = true;
                         for (int j = i + 1; j < defList.size(); ++j) {
                             Code q = defList.get(j);
                             if (q.getDef() != null && q.getDef().equals(p.getSymbolOrd1())) {
-                                flag = false;
+                                tag = false;
                                 break;
                             }
                         }
-                        if (flag) {
+                        if (tag) {
                             code.reSet(code.getUse().get(symbol), p.getOrd1(), p.getSymbolOrd1());
+                            // System.out.println(code);
                             changed = true;
                         }
                     }
                 }
-
                 if (!flag && arriveIn.stream().filter(meta -> meta.getSymbol().equals(symbol)).count() == 1) {
                     // in arriveIn and only one
                     // only broadcast const
@@ -282,6 +301,7 @@ public class Block {
             Symbol def = code.getDef();
             if (MipsGenerator.optimize.get("MidCodeOptimize")) {
                 if ("-0123456789".indexOf(code.getOrd1().charAt(0)) != -1 && "-0123456789".indexOf(code.getOrd2().charAt(0)) != -1) {
+                    // System.out.println(code);
                     changed = true;
                     int res = 0;
                     switch (code.getInstr()) {
@@ -324,6 +344,7 @@ public class Block {
                     code.clearOrd1(String.valueOf(res));
                     code.clearOrd2(null);
                     code.setOp(Code.Op.ASSIGN);
+                    // System.out.println(code);
                 }
             }
             if (def != null) defList.add(code);
@@ -377,6 +398,10 @@ public class Block {
 
     public void setArriveOut(HashSet<Meta> arriveOut) {
         this.arriveOut = arriveOut;
+    }
+
+    public void setCodes(ArrayList<Code> codes) {
+        this.codes = codes;
     }
 
     @Override

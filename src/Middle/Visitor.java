@@ -122,6 +122,7 @@ public class Visitor {
                     dims.add(Integer.valueOf(expTravel(exp)));
                 } catch (Exception ignore) {}
             }
+            // System.out.println(dims + " " + name);
 
             if (!def.isInit()) {
                 // 数组且非初始化
@@ -349,14 +350,14 @@ public class Visitor {
         int label2 = ++MidCodeList.labelCounter;
         condTravel(ifStmt.getCond(), label1, false);
         stmtTravel(ifStmt.getIfStmt());
-        MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
+        if (ifStmt.hasElse()) MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label1 + ")", "(EMPTY)", "(EMPTY)");
         if (ifStmt.hasElse()) {
             stmtTravel(ifStmt.getElseStmt());
-            MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
+            // MidCodeList.add(Code.Op.JUMP, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
             // !!! 空jump
         }
-        MidCodeList.add(Code.Op.LABEL, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
+        if (ifStmt.hasElse()) MidCodeList.add(Code.Op.LABEL, "(LABEL" + label2 + ")", "(EMPTY)", "(EMPTY)");
     }
 
     private void whileStmtTravel(WhileStmt whileStmt) {
@@ -367,7 +368,8 @@ public class Visitor {
         // label_end
         ++cycLevel;
         // !!! 空jump
-        String whileBeginLabel = MidCodeList.add(Code.Op.JUMP, "(AUTO)", "(EMPTY)", "(EMPTY)");
+        // String whileBeginLabel = MidCodeList.add(Code.Op.JUMP, "(AUTO)", "(EMPTY)", "(EMPTY)");
+        String whileBeginLabel = "(LABEL" + ++MidCodeList.labelCounter + ")";
         MidCodeList.add(Code.Op.LABEL, whileBeginLabel, "(EMPTY)", "(EMPTY)");
         Integer realWhileBeginLabel = null;
         if (MipsGenerator.optimize.get("JumpOptimize")) realWhileBeginLabel = ++MidCodeList.labelCounter;
@@ -380,13 +382,14 @@ public class Visitor {
         condTravel(whileStmt.getCond(), label, false);
         // !!! 空jump
         if (MipsGenerator.optimize.get("JumpOptimize")) {
-            MidCodeList.add(Code.Op.JUMP, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
+            // MidCodeList.add(Code.Op.JUMP, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
             MidCodeList.add(Code.Op.LABEL, "(LABEL" + realWhileBeginLabel + ")", "(EMPTY)", "(EMPTY)");
         }
         stmtTravel(whileStmt.getStmt());
         if (MipsGenerator.optimize.get("JumpOptimize")) condTravel(whileStmt.getCond(), realWhileBeginLabel, true);
+        else MidCodeList.add(Code.Op.JUMP, whileBeginLabel, "(EMPTY)", "(EMPTY)");
         // 空jump
-        MidCodeList.add(Code.Op.JUMP, (MipsGenerator.optimize.get("JumpOptimize")) ? "(LABEL" + label + ")":  whileBeginLabel, "(EMPTY)", "(EMPTY)");
+        // MidCodeList.add(Code.Op.JUMP, (MipsGenerator.optimize.get("JumpOptimize")) ? "(LABEL" + label + ")":  whileBeginLabel, "(EMPTY)", "(EMPTY)");
         MidCodeList.add(Code.Op.LABEL, "(LABEL" + label + ")", "(EMPTY)", "(EMPTY)");
 
         whileBeginEndLabelStack.pop();
@@ -788,7 +791,7 @@ public class Visitor {
 
     private String expTravel(Exp exp) {
         //if (exp instanceof ConstExp || blockLevel == 0) { // 全局或常数
-        if (MipsGenerator.optimize.get("MidCodeOptimize")) {
+        if (MipsGenerator.optimize.get("MidCodeOptimize") || exp instanceof ConstExp || blockLevel == 0) { // 全局或常数
             try {
                 return String.valueOf(Calc.calcExp(exp));
             } catch (Exception ignore) {

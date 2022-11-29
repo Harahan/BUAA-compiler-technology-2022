@@ -58,11 +58,13 @@ public class Compiler {
         if (optimize.get("DeleteDeadCode")) {
             dataFlow.deleteDeadCode();
         }
+        //System.out.println("cc");
         if (optimize.get("BroadcastCode")) {
             dataFlow.broadcastCode();
         }
         MidCodeList.codes = dataFlow.getCodes();
         write(MidCodeList.printMidCode(), "ir_opt.txt");
-        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(false), "mips.txt");
+        // dataFlow.printGraph();
+        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(true), "mips.txt");
     }
 }

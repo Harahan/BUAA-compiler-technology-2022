@@ -5,14 +5,16 @@ import Middle.Util.Code;
 import Middle.Util.Code.Op;
 import Symbol.Symbol;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DataFlow {
     private static final HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
     private final HashMap<String, ArrayList<Code>> func2codes = new HashMap<>();
     private ArrayList<Code> codes;
+    private final HashSet<Integer> ans = new HashSet<>();
+    private final HashSet<Integer> vis = new HashSet<>();
+    private String curFun = null;
 
     private final ArrayList<Code> global = new ArrayList<>();
     public static HashSet<Op> divider = new HashSet<Op>() {{
@@ -33,22 +35,35 @@ public class DataFlow {
         func2blocks.clear();
         func2codes.clear();
         global.clear();
-        HashMap<String, Integer> label2id = new HashMap<>();
         for (Code code : codes) {
             if (code.getInstr() == Op.FUNC) break;
             global.add(code);
+        }
+        // System.out.println(codes);
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.FUNC) {
+                String func = codes.get(i).getSymbolOrd1().getNickname();
+                ArrayList<Code> funcCodes = new ArrayList<>();
+                while (codes.get(i).getInstr() != Op.FUNC_END) funcCodes.add(codes.get(i++));
+                funcCodes.add(codes.get(i));
+                func2codes.put(func, funcCodes);
+                // System.out.println(funcCodes);
+            }
+        }
+        for (String func : func2codes.keySet()) divideBlock(func, func2codes.get(func));
+    }
+
+    private void divideBlock(String func, ArrayList<Code> codes) {
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).getInstr() == Op.NOP) {
+                // System.out.println(codes);
+                codes.remove(i--);
+            }
         }
         if (MipsGenerator.optimize.get("JumpOptimize")) {
             for (int i = 0; i < codes.size(); ++i) {
                 if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.JUMP) {
                     codes.remove(i + 1);
-                }
-            }
-            for (int i = 0; i < codes.size(); ++i) {
-                if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.LABEL
-                        && codes.get(i).getOrd1().equals(codes.get(i + 1).getOrd1()) && i - 1 >= 0 && Code.jump.contains(codes.get(i - 1).getInstr())) {
-                    codes.remove(i);
-                    --i;
                 }
             }
             for (int i = 0; i < codes.size(); ++i) {
@@ -66,48 +81,41 @@ public class DataFlow {
                     --i;
                 }
             }
-        }
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getInstr() == Op.LABEL) label2id.put(codes.get(i).getOrd1(), i);
-        }
-        // System.out.println(codes);
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getInstr() == Op.FUNC) {
-                String func = codes.get(i).getSymbolOrd1().getNickname();
-                ArrayList<Code> funcCodes = new ArrayList<>();
-                while (codes.get(i).getInstr() != Op.FUNC_END) {
-                    Code code = codes.get(i);
-                    String label = null;
-                    if (code.getInstr() == Op.JUMP) label = code.getOrd1();
-                    else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) label = code.getRes();
-                    String selfLabel = label;
-                    String preLabel = label;
-                    if (label != null) {
-                        do {
-                            Integer jid = label2id.get(label);
-                            // System.out.println(label + " " + jid + " " + selfLabel);
-                            while (jid < codes.size() && codes.get(jid).getInstr() == Op.LABEL) ++jid;
-                            if (jid < codes.size() && codes.get(jid).getInstr() == Op.JUMP && !codes.get(jid).getOrd1().equals(selfLabel) && !codes.get(jid).getOrd1().equals(preLabel)) {
-                                preLabel = label;
-                                label = codes.get(jid).getOrd1();
-                            }
-                            else break;
-                        } while (true);
-                        if (code.getInstr() == Op.JUMP) code.clearOrd1(label);
-                        else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) code.clearRes(label);
-                    }
-                    funcCodes.add(code);
-                    ++i;
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).getInstr() == Op.JUMP && i + 1 < codes.size() && codes.get(i + 1).getInstr() == Op.LABEL
+                        && codes.get(i).getOrd1().equals(codes.get(i + 1).getOrd1())) {
+                    codes.remove(i--);
+                    --i;
                 }
-                funcCodes.add(codes.get(i));
-                func2codes.put(func, funcCodes);
-                // System.out.println(funcCodes);
+            }
+
+            HashMap<String, Integer> label2id = new HashMap<>();
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).getInstr() == Op.LABEL) label2id.put(codes.get(i).getOrd1(), i);
+            }
+            for (int i = 0; i < codes.size(); ++i) {
+                Code code = codes.get(i);
+                String label = null;
+                if (code.getInstr() == Op.JUMP) label = code.getOrd1();
+                else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) label = code.getRes();
+                String selfLabel = label;
+                String preLabel = label;
+                if (label != null) {
+                    do {
+                        Integer jid = label2id.get(label);
+                        // System.out.println(label + " " + jid + " " + selfLabel);
+                        while (jid < codes.size() && codes.get(jid).getInstr() == Op.LABEL) ++jid;
+                        if (jid < codes.size() && codes.get(jid).getInstr() == Op.JUMP && !codes.get(jid).getOrd1().equals(selfLabel) && !codes.get(jid).getOrd1().equals(preLabel)) {
+                            preLabel = label;
+                            label = codes.get(jid).getOrd1();
+                        } else break;
+                    } while (true);
+                    if (code.getInstr() == Op.JUMP) code.clearOrd1(label);
+                    else if (code.getInstr() == Op.NEZ_JUMP || code.getInstr() == Op.EQZ_JUMP) code.clearRes(label);
+                }
             }
         }
-        for (String func : func2codes.keySet()) divideBlock(func, func2codes.get(func));
-    }
 
-    private void divideBlock(String func, ArrayList<Code> codes) {
         // 标记block开始code
         // System.out.println(func + " " + codes);
         HashSet<Integer> begin = new HashSet<>();
@@ -178,6 +186,32 @@ public class DataFlow {
         }
         func2blocks.put(func, blocks);
         // System.out.println(func + " " + blocks);
+        curFun = func;
+        ans.clear();
+        vis.clear();
+        dfs(0);
+        ans.add(blocks.size() - 2);
+        for (int i = 0; i < blocks.size(); ++i) {
+            if (!ans.contains(i)) func2blocks.get(curFun).get(i).setCodes(new ArrayList<>());
+        }
+        ArrayList<Code> funcCodes = new ArrayList<>();
+        for (Block b : func2blocks.get(curFun)) funcCodes.addAll(b.getCodes());
+        changeCodes(curFun, funcCodes);
+        // System.out.println(funcCodes);
+    }
+
+    public HashSet<Integer> edges(int u) {
+        return func2blocks.get(curFun).get(u).getNxt();
+    }
+
+    public void dfs(int u) {
+        ans.add(u);
+        for (int v : edges(u)) {
+            if (!vis.contains(v)) {
+                vis.add(v);
+                dfs(v);
+            }
+        }
     }
 
     public void printGraph() {
@@ -270,10 +304,21 @@ public class DataFlow {
 
     private boolean deleteDeadCode(String fun) {
         ArrayList<Block> blocks = func2blocks.get(fun);
-        int x = func2codes.get(fun).size();
+        boolean x = false;
         ArrayList<Code> rt = new ArrayList<>();
-        for (Block block : blocks) rt.addAll(block.deleteDeadCode());
+        for (Block block : blocks) {
+            int y = rt.size();
+            int z = block.getCodes().size();
+            rt.addAll(block.deleteDeadCode());
+            if (!x) x = rt.size() - y != z;
+        }
         func2codes.put(fun, rt);
+
+        //if (x == true) System.out.println(rt);
+        return x;
+    }
+
+    private void changeCodes(String fun, ArrayList<Code> rt) {
         int i = 0, j = 0;
         for (int k = 0; k < codes.size(); ++k) {
             if (codes.get(k).getInstr() == Op.FUNC && codes.get(k).getOrd1().equals(fun)) i = k;
@@ -284,17 +329,19 @@ public class DataFlow {
         codes = pre;
         codes.addAll(rt);
         codes.addAll(post);
-        return x != rt.size();
     }
 
     public void deleteDeadCode() {
         for (String func : func2blocks.keySet()) {
             boolean changed = deleteDeadCode(func);
+            // System.out.println(changed);
             while (changed) {
+                // System.out.println( " " +  func + " " + func2codes.get(func));
                 divideBlock(func, func2codes.get(func));
                 arriveDataAnalysis(func);
                 activeDataAnalysis(func);
                 changed = deleteDeadCode(func);
+                // System.out.println(changed);
             }
         }
     }
@@ -317,7 +364,7 @@ public class DataFlow {
             while (changed) {
                 arriveDataAnalysis(func);
                 activeDataAnalysis(func);
-                deleteDeadCode(func);
+                deleteDeadCode();
                 changed = broadcastCode(func);
             }
         }
@@ -343,5 +390,31 @@ public class DataFlow {
         }
         if (error) throw new RuntimeException("codeId error");
         return rt;
+    }
+
+    public static HashSet<Integer> getBlockEnd(String fun) {
+        HashSet<Integer> rt = new HashSet<>();
+        int x = -1;
+        for (Block block : func2blocks.get(fun)) {
+            x += block.getCodes().size();
+            rt.add(x);
+        }
+        // System.out.println(fun + " block end: " + rt.stream().sorted().collect(Collectors.toList()));
+        return rt;
+    }
+
+    public static HashSet<Integer> getBlockBegin(String fun) {
+        HashSet<Integer> rt = new HashSet<>();
+        int x = -1;
+        for (Block block : func2blocks.get(fun)) {
+            x += block.getCodes().size();
+            rt.add(x - block.getCodes().size() + 1);
+        }
+        // System.out.println(fun + " block begin: " + rt.stream().sorted().collect(Collectors.toList()));
+        return rt;
+    }
+
+    public static ArrayList<Code> getBlockCodes(String fun, Integer blockId) {
+        return func2blocks.get(fun).get(blockId).getCodes();
     }
 }
