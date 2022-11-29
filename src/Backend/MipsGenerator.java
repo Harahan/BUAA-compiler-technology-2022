@@ -141,7 +141,6 @@ public class MipsGenerator {
             // System.out.println(sym);
             String addReg = RegAlloc.find(sym, 0);
             if (addReg == null) {
-                // System.out.println(sym);
                 // 不在寄存器中
                 addReg = RegAlloc.mandatoryAllocOne(reg, sym, 0, true);
                 mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.lw, addReg, null, sym.getAddr(), "$sp")));
@@ -233,7 +232,6 @@ public class MipsGenerator {
 
         //  reg --> lVal
         assert symbolLVal != null;
-        // System.out.println(lVal + " " + symbolLVal);
         if (rVal.startsWith("$")) {
             if (symbolLVal.getDim() == 0) {
                 String resReg = RegAlloc.find(symbolLVal, 0);
@@ -275,7 +273,6 @@ public class MipsGenerator {
             try {
                 immOffRVal = Integer.valueOf(m.group(1));
             } catch (Exception e) {
-                // System.out.println(m.group(1));
                 symOffRVal = Visitor.str2Symbol.get(m.group(1));
             }
         }
@@ -307,7 +304,6 @@ public class MipsGenerator {
             String src = RegAlloc.find(symbolLVal, 0);
             if (src == null) {
                 src = RegAlloc.mandatoryAllocOne(symbolLVal, 0, true);
-                // pushBackOrLoadFromMem(src, symbolLVal, 0, Instruction.LS.Op.lw);
             }
             if (symOffRVal != null) pushBackOrLoadFromMem(src, symbolRVal, symOffRVal, Instruction.LS.Op.lw);
             else if (immOffRVal != null) pushBackOrLoadFromMem(src, symbolRVal, immOffRVal * 4, Instruction.LS.Op.lw);
@@ -389,8 +385,6 @@ public class MipsGenerator {
             regRes = RegAlloc.find(symbolRes, 0);
             if (regRes == null) {
                 regRes = RegAlloc.mandatoryAllocOne(symbolRes, 0, false);
-                //loadLVal(regRes, res);
-                //RegAlloc.mandatorySet(regRes, symbolRes, 0);
             }
         }
 
@@ -470,15 +464,13 @@ public class MipsGenerator {
             // ord1
             if (symbolOrd1 != null) {
                 regOrd1 = RegAlloc.find(symbolOrd1, 0);
-                // System.out.println(symbolOrd1 + " " + regOrd1);
                 if (regOrd1 == null) {
                     regOrd1 = RegAlloc.mandatoryAllocOne(symbolOrd1, 0, false);
                     loadLVal(regOrd1, ord1);
                     RegAlloc.mandatorySet(regOrd1, symbolOrd1, 0);
                 }
             } else if (!ord1.equals("0")) {
-                 //System.out.println(ord1 + " " + op);
-                if (op != Code.Op.ADD) {
+                 if (op != Code.Op.ADD) {
                     regOrd1 = "$a0";
                     mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regOrd1, Integer.valueOf(ord1))));
                 } else {
@@ -548,14 +540,14 @@ public class MipsGenerator {
                         break;
                 }
             } else {
-                String reg = null;
-                Integer num = null;
+                String reg;
+                int num;
                 if (tag == 1) {
                     reg = regOrd2;
-                    num = Integer.valueOf(ord1);
+                    num = Integer.parseInt(ord1);
                 } else {
                     reg = regOrd1;
-                    num = Integer.valueOf(ord2);
+                    num = Integer.parseInt(ord2);
                 }
                 switch (op) {
                     case ADD:
@@ -625,7 +617,6 @@ public class MipsGenerator {
     public void saveRegs(Integer codeId, String func) {
         HashMap<String, Pair<Symbol, Integer>> used = RegAlloc.getAllUsed();
         HashSet<Symbol> activeOut;
-        // System.out.println(activeOut);
         if (!optimize.get("TmpRegisterAlloc")) activeOut = null;
         else activeOut = DataFlow.getActiveOut(func, codeId);
         for (String reg : used.keySet()) {
@@ -640,7 +631,6 @@ public class MipsGenerator {
                     }
                 }
             }
-            //if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) RegAlloc.refreshOne(reg);
         }
     }
 
@@ -686,11 +676,6 @@ public class MipsGenerator {
     }
 
     public void translateFunc(ArrayList<Code> funCodeList) {
-        // refresh all regs
-        //for (String reg : RegAlloc.regMap.keySet()) {
-        //    RegAlloc.refreshOne(reg);
-        //}
-        // translate
         Func func = (Func) funCodeList.get(0).getSymbolOrd1();
         mipsCodeList.add("\n");
         mipsCodeList.add(getName(func) + ":");
@@ -704,8 +689,6 @@ public class MipsGenerator {
         Stack<Func> callFunc = new Stack<>();
         HashSet<Integer> blockEnd = DataFlow.getBlockEnd(func.getNickname());
         HashSet<Integer> blockBegin = DataFlow.getBlockBegin(func.getNickname());
-        //System.out.println("blockEnd: " + blockEnd.stream().sorted().collect(Collectors.toList()));
-        //System.out.println("blockBegin: " + blockBegin.stream().sorted().collect(Collectors.toList()));
         for (int i = 1; i < funCodeList.size(); ++i) {
             mipsCodeList.add("\n#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
