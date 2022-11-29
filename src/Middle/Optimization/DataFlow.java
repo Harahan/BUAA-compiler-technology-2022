@@ -1,9 +1,11 @@
 package Middle.Optimization;
 
 import Backend.MipsGenerator;
+import Backend.Optimization.RedundantCall;
 import Middle.Util.Code;
 import Middle.Util.Code.Op;
-import Symbol.Symbol;
+import Middle.Visitor;
+import Symbol.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,6 +29,24 @@ public class DataFlow {
     }};
 
     public DataFlow(ArrayList<Code> codes) {
+        for (int i = 0; i < codes.size(); ++i) {
+            Code code = codes.get(i);
+            String ord1 = code.getOrd1();
+            if (code.getInstr() == Code.Op.PREPARE_CALL) {
+                boolean redundant = false;
+                if (MipsGenerator.optimize.get("RemoveRedundantCall")) {
+                    Func call = (Func) Visitor.str2Symbol.get(ord1);
+                    redundant = RedundantCall.redundantCall(call, codes, i + 1);
+                    // System.out.println("redundant call: " + call.getName() + " " + redundant);
+                }
+                if (redundant) {
+                    // System.out.println("Remove redundant call: " + ord1);
+                    while (codes.get(i).getInstr() != Code.Op.CALL) codes.remove(i);
+                    codes.remove(i--);
+                    // System.out.println(codes);
+                }
+            }
+        }
         this.codes = codes;
     }
 

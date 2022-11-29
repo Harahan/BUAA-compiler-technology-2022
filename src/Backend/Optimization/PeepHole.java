@@ -41,5 +41,35 @@ public class PeepHole {
                 }
             }
         }
+        // sw and lw delete
+        for (int i = 0; i < codes.size(); ++i) {
+            String code = codes.get(i);
+            if (code.startsWith("sw ")) {
+                String[] tokens = code.split(" ");
+                int j = i + 1;
+                while ((codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
+                // not LABEL or target
+                if (codes.get(j).startsWith("lw ")  && codes.get(j).split(" ")[1].startsWith(tokens[1]) && codes.get(j).split(" ")[2].equals(tokens[2])) {
+                    codes.remove(j);
+                    codes.remove(i);
+                    --i;
+                }
+            }
+        }
+        // lw and sw delete
+        for (int i = 0; i < codes.size(); ++i) {
+            String code = codes.get(i);
+            if (code.startsWith("lw ")) {
+                String[] tokens = code.split(" ");
+                int j = i + 1;
+                while ((codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
+                // not LABEL or target
+                if (codes.get(j).startsWith("sw ")  && codes.get(j).split(" ")[1].startsWith(tokens[1]) && codes.get(j).split(" ")[2].equals(tokens[2])) {
+                    codes.remove(j);
+                    codes.remove(i);
+                    --i;
+                }
+            }
+        }
     }
 }

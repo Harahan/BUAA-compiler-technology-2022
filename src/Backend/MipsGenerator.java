@@ -30,6 +30,7 @@ public class MipsGenerator {
         put("TmpRegisterAlloc", true);
         put("MidCodeOptimize", true);
         put("JumpOptimize", true);
+        put("RemoveRedundantCall", true);
     }};
 
     public static ArrayList<String> mipsCodeList = new ArrayList<>();
@@ -41,6 +42,9 @@ public class MipsGenerator {
     public static final Pattern tempPattern = Pattern.compile(".*\\(T(\\d+)\\).*");
 
     public MipsGenerator(ArrayList<Code> codes) {
+        // System.out.println(codes);
+
+
         if (optimize.get("TmpRegisterAlloc")) {
             for (Code code : codes) {
                 String ord1 = hasTmp(code.getOrd1());
@@ -634,9 +638,9 @@ public class MipsGenerator {
         }
     }
 
-    public void returnFromFunc(String val, int funSize) {
+    public void returnFromFunc(String val, int funSize, boolean lw) {
         if (val != null) loadLVal("$v0", val);
-        mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.lw, "$ra", null, funSize + 31 * 4, "$sp")));
+        if (lw) mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.lw, "$ra", null, funSize + 31 * 4, "$sp")));
         mipsCodeList.add(String.valueOf(new Instruction.M(Instruction.M.Op.jr, "$ra")));
     }
 
@@ -681,7 +685,7 @@ public class MipsGenerator {
         mipsCodeList.add(getName(func) + ":");
         if (func.getName().startsWith("main")) {
             mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", -func.getFuncTable().totSize)));
-        } else {
+        } else if (func.callOtherFunc) {
             mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.sw, "$ra", null, func.getFuncTable().totSize + 31 * 4, "$sp")));
         }
         int paraNum = 0;
@@ -694,15 +698,17 @@ public class MipsGenerator {
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
             String ord1 = code.getOrd1(), ord2 = code.getOrd2(), res = code.getRes();
-
+            //if (code.toString().equals("EQZ_JUMP (T16) (LABEL19)")) System.out.println(RegAlloc.find(code.getSymbolOrd1(), 0));
             if (blockBegin.contains(i)) {
                 for (String reg : RegAlloc.regMap.keySet()) {
                     RegAlloc.refreshOne(reg);
                 }
             }
+            //if (code.toString().equals("EQZ_JUMP (T16) (LABEL19)")) System.out.println(RegAlloc.find(code.getSymbolOrd1(), 0));
             if (blockEnd.contains(i) && op != Code.Op.RETURN && op != Code.Op.FUNC_END && Code.jump.contains(op) && op != Code.Op.LABEL) {
                 saveRegs(i, func.getNickname());
             }
+            //if (code.toString().equals("EQZ_JUMP (T16) (LABEL19)")) System.out.println(RegAlloc.find(code.getSymbolOrd1(), 0));
 
             // 标记临时变量的使用次数
             String o1 = hasTmp(ord1);
@@ -738,7 +744,7 @@ public class MipsGenerator {
                 }
             } else if (Code.func.contains(op)) {
                 if (op == Code.Op.PREPARE_CALL) {
-                    mipsCodeList.add("");
+                     mipsCodeList.add("\n");
                     callFunc.push((Func) code.getSymbolOrd1());
                 } else if (op == Code.Op.PUSH_PAR_INT) {
                     pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), false, callFunc.lastElement().getFuncTable().totSize);
@@ -749,7 +755,7 @@ public class MipsGenerator {
                         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$v0", 10)));
                         mipsCodeList.add(String.valueOf(new Instruction.NP(Instruction.NP.Op.syscall)));
                     } else {
-                        returnFromFunc(ord1, func.getFuncTable().totSize);
+                        returnFromFunc(ord1, func.getFuncTable().totSize, func.callOtherFunc);
                     }
                 } else if (op == Code.Op.CALL) {
                     paraNum = 0;
@@ -799,6 +805,7 @@ public class MipsGenerator {
             if (blockEnd.contains(i) && op != Code.Op.RETURN && op != Code.Op.FUNC_END && (!Code.jump.contains(op) || op == Code.Op.LABEL)) {
                 saveRegs(i, func.getNickname());
             }
+            //if (code.toString().equals("GT vr5(1,6) 0 (T16)")) System.out.println(RegAlloc.find(code.getSymbolRes(), 0));
         }
     }
 

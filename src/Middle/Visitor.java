@@ -410,6 +410,7 @@ public class Visitor {
             ErrorTable.add(new Error(Error.Type.CHANGE_CONST_VALUE, ident.getLine()));
             return;
         }
+        curFunc.setHasIO(true);
         MidCodeList.add(Code.Op.GET_INT, "(EMPTY)", "(EMPTY)", lValTravel(inputStmt.getLVal(), false));
     }
 
@@ -490,6 +491,7 @@ public class Visitor {
             } else p.append(fs.charAt(i));
         }
         if (p.length() != 0) MidCodeList.add(Code.Op.PRINT_STR, p.toString(), "(EMPTY)", "(EMPTY)");
+        curFunc.setHasIO(true);
     }
 
     /*
@@ -594,6 +596,7 @@ public class Visitor {
                 addr.add(symbols.get(i + 1).getDim() != 0);
             }
             for (int i = 0; i < params.size(); ++i) {
+                if (addr.get(i)) func.setHasAddressParam(true);
                 MidCodeList.add(addr.get(i) ? Code.Op.PUSH_PAR_ADDR : Code.Op.PUSH_PAR_INT, params.get(i), "(EMPTY)", "(EMPTY)");
             }
 
@@ -652,7 +655,7 @@ public class Visitor {
                 ErrorTable.add(new Error(Error.Type.UNDEFINE_IDENT, ident.getLine()));
                 return "(ERROR)";
             }
-
+            curFunc.setCallOtherFunc(true);
             MidCodeList.add(Code.Op.PREPARE_CALL, curTable.get(name, true).getNickname(), "(EMPTY)", "(EMPTY)");
             FuncRParams funcRParams = unaryExp.getFuncRParams();
             funcRParamsTravel(funcRParams, ident, name);
@@ -818,6 +821,8 @@ public class Visitor {
         Symbol symbol = curTable.get(name, true);
         String nickname = symbol.getNickname();
         ArrayList<Integer> dims = symbol instanceof Val ? ((Val) symbol).getDims() : ((FuncFormParam) symbol).getDims();
+        if (symbol.getBlockLevel() == 0 && !symbol.isConst() && !assign) curFunc.setUseNotConstGlobal(true);
+
 
         ArrayList<Index> indexes = lVal.getIndexes();
         if (!indexes.isEmpty()) {
@@ -834,7 +839,13 @@ public class Visitor {
                     base = MidCodeList.add(Code.Op.MUL, x, dims.get(1).toString(), "(AUTO)");
                 }
                 try {
-                    nickname += "[" + (Integer.parseInt(y) + Integer.parseInt(base)) + "]";
+                    int index = Integer.parseInt(y) + Integer.parseInt(base);
+                    nickname += "[" + index + "]";
+                    try {
+                        if (MipsGenerator.optimize.get("MidCodeOptimize") && symbol instanceof Val && ((Val) symbol).isConst()) {
+                            return String.valueOf(((Val) symbol).getInitVal().get(index));
+                        }
+                    } catch (Exception ignore) {}
                 } catch (Exception ignore) {
                     nickname += "[" + MidCodeList.add(Code.Op.ADD, y, base, "(AUTO)") + "]";
                 }
@@ -850,12 +861,22 @@ public class Visitor {
                         x = MidCodeList.add(Code.Op.MUL, x, dims.get(1).toString(), "(AUTO)");
                     }
                 }
+                try {
+                    if (dims.size() == indexes.size() && MipsGenerator.optimize.get("MidCodeOptimize") && symbol instanceof Val && ((Val) symbol).isConst()) {
+                        return String.valueOf(((Val) symbol).getInitVal().get(Integer.parseInt(x)));
+                    }
+                } catch (Exception ignore) {}
                 nickname += "[" + x + "]";
             }
         } else if (!dims.isEmpty()) { // 地址
             nickname += "[0]";
+        } else {
+            if (MipsGenerator.optimize.get("MidCodeOptimize") && symbol instanceof Val && ((Val) symbol).isConst()) {
+                return String.valueOf(((Val) symbol).getInitVal().get(0));
+            }
         }
         // 不为函数参数
+        // assign --> not assign
         if (assign && dims.size() == indexes.size() && indexes.size() != 0) return MidCodeList.add(Code.Op.ASSIGN, nickname, "(EMPTY)", "(AUTO)");
         return nickname;
     }

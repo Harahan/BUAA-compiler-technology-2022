@@ -96,4 +96,25 @@ public class Func implements Symbol {
     public int getDim() {
         return 0;
     }
+
+    public boolean useNotConstGlobal = false;
+    public boolean callOtherFunc = false;
+    public boolean hasAddressParam = false;
+    public boolean hasIO = false;
+
+    public void setHasAddressParam(boolean hasAddressParam) {
+        this.hasAddressParam = hasAddressParam;
+    }
+
+    public void setUseNotConstGlobal(boolean useGlobal) {
+        this.useNotConstGlobal = useGlobal;
+    }
+
+    public void setCallOtherFunc(boolean callOtherFunc) {
+        this.callOtherFunc = callOtherFunc;
+    }
+
+    public void setHasIO(boolean hasIO) {
+        this.hasIO = hasIO;
+    }
 }
