@@ -196,40 +196,62 @@ public class Block {
                 } else if (code.getInstr() == Code.Op.JUMP && i + 1 < res.size() && res.get(i + 1).getInstr() == Code.Op.JUMP) {
                     flag = true;
                     res.remove(i + 1);
-                } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN && i + 1 < res.size() &&
-                        (code.getRes().equals(res.get(i + 1).getOrd1()) || code.getRes().equals(res.get(i + 1).getOrd2()))) {
+                } else if (Code.alu.contains(code.getInstr()) && code.getInstr() != Code.Op.ASSIGN /*&& i + 1 < res.size() &&
+                        (code.getRes().equals(res.get(i + 1).getOrd1()) || code.getRes().equals(res.get(i + 1).getOrd2()))*/) {
                     Code.Op op = code.getInstr();
                     String ord1 = code.getOrd1();
                     String ord2 = code.getOrd2();
-                    Code nxtCode = res.get(i + 1);
+                    // Code nxtCode = res.get(i + 1);
                     String t = null;
                     boolean tag = false;
-                    int x = code.getRes().equals(res.get(i + 1).getOrd1()) ? 1 : 2;
+                    // int x = code.getRes().equals(res.get(i + 1).getOrd1()) ? 1 : 2;
                     if (op == Code.Op.MUL && (ord1.equals("1") || ord2.equals("1"))) {
                         t = ord1.equals("1") ? ord2 : ord1;
+                        code.setOp(Code.Op.ASSIGN);
+                        if (ord1.equals("1")) {
+                            code.clearOrd1(ord2);
+                            code.clearOrd2(null);
+                        } else code.clearOrd2(null);
                         tag = true;
                     } else if (op == Code.Op.MUL && (ord1.equals("0") || ord2.equals("0"))) {
                         t = "0";
+                        code.setOp(Code.Op.ASSIGN);
+                        code.clearOrd1("0");
+                        code.clearOrd2(null);
                         tag = true;
                     } else if (op == Code.Op.ADD && (ord1.equals("0") || ord2.equals("0"))) {
                         t = ord1.equals("0") ? ord2 : ord1;
+                        // System.out.println(code);
+                        code.setOp(Code.Op.ASSIGN);
+                        if (ord1.equals("0")) {
+                            code.clearOrd1(ord2);
+                            code.clearOrd2(null);
+                        } else code.clearOrd2(null);
                         tag = true;
                     } else if (op == Code.Op.SUB && ord2.equals("0")) {
                         t = ord1;
+                        code.setOp(Code.Op.ASSIGN);
+                        code.clearOrd2(null);
                         tag = true;
                     } else if (op == Code.Op.DIV && ord2.equals("1")) {
                         t = ord1;
+                        code.setOp(Code.Op.ASSIGN);
+                        code.clearOrd2(null);
                         tag = true;
                     }
-                    if (tag) {
+                    if (tag && i + 1 < res.size() &&
+                            (code.getRes().equals(res.get(i + 1).getOrd1()) || code.getRes().equals(res.get(i + 1).getOrd2()))) {
+                        Code nxtCode = res.get(i + 1);
+                        int x = code.getRes().equals(res.get(i + 1).getOrd1()) ? 1 : 2;
                         if (x == 1 && !nxtCode.getOrd1().equals(t)) {
-                            flag = true;
+                            //flag = true;
                             nxtCode.clearOrd1(t);
                         } else if (!nxtCode.getOrd2().equals(t)) {
-                            flag = true;
+                            //flag = true;
                             nxtCode.clearOrd2(t);
                         }
                     }
+                    if (tag) flag = true;
                 }
             }
         }
