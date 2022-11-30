@@ -240,7 +240,10 @@ public class MipsGenerator {
             if (symbolLVal.getDim() == 0) {
                 String resReg = RegAlloc.find(symbolLVal, 0);
                 // if (rVal == "$v0") System.out.println(resReg);
-                if (resReg != null) mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, resReg, rVal)));
+                if (resReg != null) {
+                    mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, resReg, rVal)));
+                    RegAlloc.dirtyRegs.put(resReg, true);
+                }
                 else pushBackOrLoadFromMem(rVal, symbolLVal, 0, Instruction.LS.Op.sw);
             } else if (immOffLVal != null) {
                 pushBackOrLoadFromMem(rVal, symbolLVal, immOffLVal * 4, Instruction.LS.Op.sw);
@@ -257,7 +260,10 @@ public class MipsGenerator {
             else {
                 String reg = RegAlloc.find(symbolLVal, 0);
                 if (reg == null) pushBackMem(Integer.valueOf(rVal), symbolLVal, 0);
-                else mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, reg, Integer.valueOf(rVal))));
+                else {
+                    mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, reg, Integer.valueOf(rVal))));
+                    RegAlloc.dirtyRegs.put(reg, true);
+                }
             }
             return;
         }
@@ -295,7 +301,10 @@ public class MipsGenerator {
             if (symOffLVal == null && immOffLVal == null) {
                 // lVal: 0 rVal: 0
                 String reg = RegAlloc.find(symbolLVal, 0);
-                if (reg != null) mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, reg, src)));
+                if (reg != null) {
+                    mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, reg, src)));
+                    RegAlloc.dirtyRegs.put(reg, true);
+                }
                 else pushBackOrLoadFromMem(src, symbolLVal, 0, Instruction.LS.Op.sw);
 
             } else if (symOffLVal != null) {
@@ -308,6 +317,7 @@ public class MipsGenerator {
             String src = RegAlloc.find(symbolLVal, 0);
             if (src == null) {
                 src = RegAlloc.mandatoryAllocOne(symbolLVal, 0, true);
+                RegAlloc.dirtyRegs.put(src, true);
             }
             if (symOffRVal != null) pushBackOrLoadFromMem(src, symbolRVal, symOffRVal, Instruction.LS.Op.lw);
             else if (immOffRVal != null) pushBackOrLoadFromMem(src, symbolRVal, immOffRVal * 4, Instruction.LS.Op.lw);
@@ -441,11 +451,13 @@ public class MipsGenerator {
                         if (num == -1) {
                             mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.neg, regRes, x)));
                             RegAlloc.mandatorySet(regRes, symbolRes, 0);
+                            RegAlloc.dirtyRegs.put(regRes, true);
                             return;
                         }
                         mipsCodeList.addAll(MulDiv.mul(regRes, x, num, 4));
                     }
                     RegAlloc.mandatorySet(regRes, symbolRes, 0);
+                    RegAlloc.dirtyRegs.put(regRes, true);
                     return;
                 }
             }
@@ -460,6 +472,7 @@ public class MipsGenerator {
                 }
                 mipsCodeList.addAll(MulDiv.div(regRes, x, d, 50, op == Code.Op.DIV, symbolOrd1));
                 RegAlloc.mandatorySet(regRes, symbolRes, 0);
+                RegAlloc.dirtyRegs.put(regRes, true);
                 return;
             }
             // 零维变量 @ 零维变量
@@ -565,6 +578,7 @@ public class MipsGenerator {
         }
         // 防止regOrd1 或者 regOrd2 覆盖了 regRes
         RegAlloc.mandatorySet(regRes, symbolRes, 0);
+        RegAlloc.dirtyRegs.put(regRes, true);
     }
 
     /** 传值不会是数组变量
@@ -631,7 +645,10 @@ public class MipsGenerator {
                     // 处理临时变量，且该变量使用超过一次
                     if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
                         mipsCodeList.add("# " + reg + ": " + sym.getName() + " ---> MEM");
-                        pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
+                        if (RegAlloc.dirtyRegs.get(reg)) {
+                            RegAlloc.dirtyRegs.put(reg, false);
+                            pushBackOrLoadFromMem(reg, sym, 0, Instruction.LS.Op.sw);
+                        }
                     }
                 }
             }
@@ -729,7 +746,10 @@ public class MipsGenerator {
                 // !!! 写回内存
                 if (code.getSymbolRes() != null && code.getSymbolRes().getDim() == 0 && code.getSymbolRes().getBlockLevel() == 0) {
                     String reg = RegAlloc.find(code.getSymbolRes(), 0);
-                    if (reg != null) pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
+                    if (reg != null && RegAlloc.dirtyRegs.get(reg)) {
+                        RegAlloc.dirtyRegs.put(reg, false);
+                        pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
+                    }
                 }
             } else if (Code.io.contains(op)) {
                 if (op == Code.Op.GET_INT) getInt(res);
@@ -740,7 +760,10 @@ public class MipsGenerator {
                 // !!! 写回内存
                 if (code.getSymbolRes() != null && code.getSymbolRes().getDim() == 0 && code.getSymbolRes().getBlockLevel() == 0) {
                     String reg = RegAlloc.find(code.getSymbolRes(), 0);
-                    if (reg != null) pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
+                    if (reg != null && RegAlloc.dirtyRegs.get(reg)) {
+                        RegAlloc.dirtyRegs.put(reg, false);
+                        pushBackOrLoadFromMem(reg, code.getSymbolRes(), 0, Instruction.LS.Op.sw);
+                    }
                 }
             } else if (Code.func.contains(op)) {
                 if (op == Code.Op.PREPARE_CALL) {
@@ -766,7 +789,7 @@ public class MipsGenerator {
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", -callFunc.lastElement().getFuncTable().totSize - 32 * 4)));
                     mipsCodeList.add("jal " +  getName(callFunc.lastElement()));
                     mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$sp", "$sp", 32 * 4 + callFunc.lastElement().getFuncTable().totSize)));
-                    mipsCodeList.add("");
+                    mipsCodeList.add("\n");
                     callFunc.pop();
                 }
             } else if (Code.jump.contains(op)) {

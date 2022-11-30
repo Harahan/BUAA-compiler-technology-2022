@@ -95,8 +95,15 @@ public class Block {
         arriveIn.clear();
         arriveOut.clear();
         // calc gen
-        for (int i = 0; i < codes.size(); ++i) {
-            if (codes.get(i).getGen() != null) arriveGen.add(new Meta(id, i, codes.get(i), codes.get(i).getSymbolRes()));
+        for (int i = codes.size() - 1; i >= 0; --i) {
+            int finalI = i;
+            if (codes.get(i).getGen() != null && arriveGen.stream().noneMatch(meta -> meta.getSymbol().equals(codes.get(finalI).getGen()))) arriveGen.add(new Meta(id, i, codes.get(i), codes.get(i).getSymbolRes()));
+            if (codes.get(i).getGen() != null) {
+                for (int j = codes.size() - 1; j >= 0; --j) {
+                    if (j == i) continue;
+                    if (codes.get(j).getGen() == codes.get(i).getGen()) arriveKill.add(new Meta(id, j, codes.get(j), codes.get(j).getSymbolRes()));
+                }
+            }
         }
         // calc kill
         arriveKill.addAll(DataFlow.prepareKill(func, id));

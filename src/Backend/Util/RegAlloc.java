@@ -57,6 +57,25 @@ public class RegAlloc {
         put("$fp", 30); put("$ra", 31);
     }};
 
+    // TODO: 2020/12/1 优化寄存器分配
+    public static final HashMap<String, Boolean> dirtyRegs = new HashMap<String, Boolean>() {{
+        /*put("$zero", false); put("$at", false);
+        put("$v0", false);*/ put("$v1", false);
+        /*put("$a0", false); put("$a1", false);*/
+        put("$a2", false); put("$a3", false);
+        put("$t0", false); put("$t1", false);
+        put("$t2", false); put("$t3", false);
+        put("$t4", false); put("$t5", false);
+        put("$t6", false); put("$t7", false);
+        put("$s0", false); put("$s1", false);
+        put("$s2", false); put("$s3", false);
+        put("$s4", false); put("$s5", false);
+        put("$s6", false); put("$s7", false);
+        put("$t8", false); put("$t9", false);
+        put("$k0", false); put("$k1", false);
+        /*put("$gp", false); put("$sp", false);*/
+        put("$fp", false); /*put("$ra", false);*/
+    }};
 
     private static int ptr = -1;
 
@@ -68,6 +87,17 @@ public class RegAlloc {
         ptr = (ptr + 1) % availableRegs.length;
         while (ptr != x && regMap.get(availableRegs[ptr]) != null) ptr = (ptr + 1) % availableRegs.length;
         if (regMap.get(availableRegs[ptr]) == null) {
+            if (set) {
+                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
+                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
+            }
+            return availableRegs[ptr];
+        }
+        // alloc clean reg
+        ptr = (ptr + 1) % availableRegs.length;
+        while (ptr != x && dirtyRegs.get(availableRegs[ptr])) ptr = (ptr + 1) % availableRegs.length;
+        if (!dirtyRegs.get(availableRegs[ptr])) {
+            regMap.put(availableRegs[ptr], null);
             if (set) {
                 MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
                 regMap.put(availableRegs[ptr], new Pair<>(sym, off));
@@ -90,16 +120,41 @@ public class RegAlloc {
     }
 
     public static String mandatoryAllocOne(String o, Symbol sym, Integer off, boolean set) {
-        int nxt = (ptr + 1) % availableRegs.length;
-        boolean flag = true;
-        for (String reg : availableRegs) {
-            if (regMap.get(reg) == null) {
-                flag = false;
-                break;
+        int x = ptr;
+        ptr = (ptr + 1) % availableRegs.length;
+        while (ptr != x && (regMap.get(availableRegs[ptr]) != null || availableRegs[ptr].equals(o))) ptr = (ptr + 1) % availableRegs.length;
+        if (regMap.get(availableRegs[ptr]) == null && !availableRegs[ptr].equals(o)) {
+            if (set) {
+                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
+                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
             }
+            return availableRegs[ptr];
         }
-        if (availableRegs[nxt].equals(o) && flag) ptr = nxt;
-        return mandatoryAllocOne(sym, off, set);
+        // alloc clean reg
+        ptr = (ptr + 1) % availableRegs.length;
+        while (ptr != x && (dirtyRegs.get(availableRegs[ptr]) || availableRegs[ptr].equals(o))) ptr = (ptr + 1) % availableRegs.length;
+        if (!dirtyRegs.get(availableRegs[ptr]) && !availableRegs[ptr].equals(o)) {
+            regMap.put(availableRegs[ptr], null);
+            if (set) {
+                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
+                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
+            }
+            return availableRegs[ptr];
+        }
+        ptr = (ptr + 1) % availableRegs.length;
+        if (availableRegs[ptr].equals(o)) ptr = (ptr + 1) % availableRegs.length;
+        String reg = availableRegs[ptr];
+        Pair<Symbol, Integer> p = regMap.get(reg);
+        regMap.put(reg, null);
+        if ((!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) && p.getKey().getBlockLevel() != 0) {
+            MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
+            MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
+        }
+        if (set) {
+            regMap.put(reg, new Pair<>(sym, off));
+            /*if (sym.getNickname().equals("i(1,7)"))*/ MipsGenerator.mipsCodeList.add("# " + reg + " <--- " + sym.getNickname());
+        }
+        return reg;
     }
 
     public static void mandatorySet(String reg, Symbol sym, Integer off) {
@@ -123,6 +178,14 @@ public class RegAlloc {
         if (regMap.get(availableRegs[ptr]) == null) {
             MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
             regMap.put(availableRegs[ptr], new Pair<>(sym, off));
+            return;
+        }
+        ptr = (ptr + 1) % availableRegs.length;
+        // alloc clean reg
+        while (ptr != x && dirtyRegs.get(availableRegs[ptr])) ptr = (ptr + 1) % availableRegs.length;
+        if (!dirtyRegs.get(availableRegs[ptr])) {
+            MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
+            regMap.put(availableRegs[ptr], new Pair<>(sym, off));
         }
     }
 
@@ -142,13 +205,14 @@ public class RegAlloc {
         HashMap<String, Pair<Symbol, Integer>> used = new HashMap<>();
         for (String reg : availableRegs) {
             Pair<Symbol, Integer> p = regMap.get(reg);
-            if (p != null) used.put(reg, p);
+            if (p != null && dirtyRegs.get(reg)) used.put(reg, p);
         }
         return used;
     }
 
     public static void refreshOne(String reg) {
         Pair<Symbol, Integer> p = regMap.get(reg);
+        dirtyRegs.put(reg, false);
         regMap.put(reg, null);
     }
 
