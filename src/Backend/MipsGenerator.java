@@ -317,8 +317,8 @@ public class MipsGenerator {
             String src = RegAlloc.find(symbolLVal, 0);
             if (src == null) {
                 src = RegAlloc.mandatoryAllocOne(symbolLVal, 0, true);
-                RegAlloc.dirtyRegs.put(src, true);
             }
+            RegAlloc.dirtyRegs.put(src, true);
             if (symOffRVal != null) pushBackOrLoadFromMem(src, symbolRVal, symOffRVal, Instruction.LS.Op.lw);
             else if (immOffRVal != null) pushBackOrLoadFromMem(src, symbolRVal, immOffRVal * 4, Instruction.LS.Op.lw);
         }
