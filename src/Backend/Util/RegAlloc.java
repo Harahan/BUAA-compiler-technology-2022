@@ -57,7 +57,6 @@ public class RegAlloc {
         put("$fp", 30); put("$ra", 31);
     }};
 
-    // TODO: 2020/12/1 优化寄存器分配
     public static final HashMap<String, Boolean> dirtyRegs = new HashMap<String, Boolean>() {{
         /*put("$zero", false); put("$at", false);
         put("$v0", false);*/ put("$v1", false);

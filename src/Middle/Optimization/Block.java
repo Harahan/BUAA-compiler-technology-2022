@@ -80,10 +80,10 @@ public class Block {
         for (int i = 0; i < codes.size(); ++i) {
             Code code = codes.get(i);
             Symbol def = code.getDef();
-            if (def != null && defMap.get(def) == i && useMap.getOrDefault(def, Integer.MAX_VALUE) > i) activeDef.add(new Meta(id, i, code, def));
+            if (def != null && defMap.get(def) == i && useMap.getOrDefault(def, Integer.MAX_VALUE) > i) activeDef.add(new Meta(-1, -1, null, def));
             HashSet<Symbol> uses = new HashSet<Symbol>(code.getUse().keySet());
             for (Symbol use : uses) {
-                if (useMap.get(use) == i && i <= defMap.getOrDefault(use, Integer.MAX_VALUE)) activeUse.add(new Meta(id, i, code, use));
+                if (useMap.get(use) == i && i <= defMap.getOrDefault(use, Integer.MAX_VALUE)) activeUse.add(new Meta(-1, -1, null, use));
             }
         }
     }
