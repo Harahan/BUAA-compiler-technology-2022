@@ -98,9 +98,7 @@ public class OptimizeLoop {
                 if (backEdge.contains(new Pair(i, j))) {
                     HashSet<Integer> loopNode = new HashSet<>();
                     loopNode.add(i);
-                    loopNode.add(j);
                     ++nodes.get(i).lp;
-                    ++nodes.get(j).lp;
                     Stack<Integer> stack = new Stack<>();
                     stack.push(i);
                     while (!stack.isEmpty()) {
@@ -168,7 +166,7 @@ public class OptimizeLoop {
 
 
 
-    // 检查中间代码是否满足循环不变式，满足返回 true
+    // 检查中间代码是否满足循环不变式
     public ArrayList<Block.Meta> checkInvariant(HashSet<Integer> loopNode) {
         // 一次检查loop中各个基本快的中间代码
         ArrayList<Block.Meta> invariant = new ArrayList<>();
@@ -217,6 +215,7 @@ public class OptimizeLoop {
                 }
             }
         } while (sz != invariant.size());
+        System.out.println("Invariant: " + invariant);
         return invariant;
     }
 
@@ -227,30 +226,31 @@ public class OptimizeLoop {
         for (Block.Meta meta : invariant) {
             Code code = meta.getCode();
             Integer i = meta.getBlockId(), j = meta.getCodeId();
-            // i 是所有出口节点的必经节点 || i 在所有出口的后继节点不再活跃
+            // i 是所有出口节点的必经节点 || i 在所有出口的后继节点(不在循环中)不再活跃
             HashSet<Integer> exit = calcExitNode(loopNode);
             boolean ck1 = exit.stream().allMatch(x -> dom.get(x).contains(i));
-            ck1 |= exit.stream().allMatch(x -> nodes.get(x).getNxt().stream().noneMatch(y -> nodes.get(y).getActiveIn().contains(new Block.Meta(-1, -1, null, code.getSymbolRes()))));
-            // code 的 res 在循环其它地方没有被定义
+            ck1 |= exit.stream().allMatch(x -> nodes.get(x).getNxt().stream().noneMatch(y -> !loopNode.contains(y) && nodes.get(y).getActiveIn().contains(new Block.Meta(-1, -1, null, code.getSymbolRes()))));
+            // code 的 res 在循环其它节点没有被定义
             for (int k : loopNode) {
                 Block block = nodes.get(k);
                 for (int l = 0; l < block.getCodes().size(); ++l) {
-                    if (k == i && l == j) continue;
+                    if (k == i) continue;
                     Code code1 = block.getCodes().get(l);
-                    if (code1.getSymbolRes() != null && code1.getSymbolRes().equals(code.getSymbolRes())) {
+                    // System.out.println(code1 + " ------------ " + code);
+                    if (code1.getDef() != null && code1.getDef().equals(code.getSymbolRes())) {
                         ck1 = false;
                         break;
                     }
                 }
             }
-            // 循环中所有对于res 的引用只有j可以到达
+            // 循环中所有对于res 的引用只有code所在基本块可以到达
             for (int k : loopNode) {
                 Block block = nodes.get(k);
                 for (int l = 0; l < block.getCodes().size(); ++l) {
-                    if (k == i && l == j) continue;
+                    if (k == i) continue;
                     for (Symbol sym : block.getCodes().get(l).getUse().keySet()) {
                         if (sym != null && sym.equals(code.getSymbolRes())) {
-                            if (!invariant.containsAll(getDef(k, l, sym))) {
+                            if (!getDef(k, l, sym).stream().allMatch(x -> i.equals(x.getBlockId()))) {
                                 ck1 = false;
                                 break;
                             }
@@ -258,6 +258,11 @@ public class OptimizeLoop {
                     }
                 }
             }
+            // 寻找分量在循环中的定值点均已经加入到循环不变式中
+            HashSet<Block.Meta> ordDefs = getDef(i, j, code.getSymbolOrd1()).stream().filter(x -> loopNode.contains(x.getBlockId())).collect(Collectors.toCollection(HashSet::new));
+            ordDefs.addAll(getDef(i, j, code.getSymbolOrd2()).stream().filter(x -> loopNode.contains(x.getBlockId())).collect(Collectors.toCollection(HashSet::new)));
+            ordDefs.removeIf(x -> Objects.equals(x.getBlockId(), i) && Objects.equals(x.getCodeId(), j));
+            if (ordDefs.size() != 0 && !extractCode.containsAll(ordDefs.stream().map(Block.Meta::getCode).collect(Collectors.toCollection(ArrayList::new)))) ck1 = false;
             if (ck1 && !deleteCodeMap.contains(new Pair(i, j))) {
                 extractCode.add(code);
                 ok = false;
@@ -265,6 +270,7 @@ public class OptimizeLoop {
                 deleteCodeMap.add(new Pair(i, j));
             }
         }
+        System.out.println("ExtractCode: " + extractCode);
         return extractCode;
     }
 
@@ -273,6 +279,11 @@ public class OptimizeLoop {
         pairList.sort(Comparator.comparingInt(Pair::getX));
         for (Pair p : pairList) {
             int pre = p.y - 1;
+            if (nodes.get(p.y).getPre().stream().filter(x -> !loopNodeMap.get(p).contains(x)).count() != 1 ||
+                !nodes.get(pre).getNxt().contains(p.y)) {
+                System.err.println("Loop " + p.y + " has more than one pre node");
+                System.exit(1);
+            }
             ArrayList<Code> extractCode = getExtractCode(loopNodeMap.get(p));
             posCodeMap.put(pre, extractCode);
         }

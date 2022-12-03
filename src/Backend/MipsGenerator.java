@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class MipsGenerator {
     public static HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
         put("MulDiv", true);
-        put("DeleteDeadCode", true);
+        put("DeleteDeadCode", false);
         put("PeepHole", true);
         put("BroadcastCode", true); // const and val both
         put("TmpRegisterAlloc", true);
@@ -44,7 +44,6 @@ public class MipsGenerator {
 
     public MipsGenerator(ArrayList<Code> codes) {
         // System.out.println(codes);
-
 
         if (optimize.get("TmpRegisterAlloc")) {
             for (Code code : codes) {

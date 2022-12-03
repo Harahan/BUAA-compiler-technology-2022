@@ -333,14 +333,11 @@ public class DataFlow {
             if (!x) x = rt.size() - y != z;
         }
         changeCodes(fun, rt);
-        //if (x == true) System.out.println(rt);
         return x;
     }
 
     private void changeCodes(String fun, ArrayList<Code> rt) {
-        // System.out.println("change " + rt);
         func2codes.put(fun, rt);
-        // System.out.println(" mmm" + rt);
         int i = 0, j = 0;
         for (int k = 0; k < codes.size(); ++k) {
             if (codes.get(k).getInstr() == Op.FUNC && codes.get(k).getOrd1().equals(fun)) i = k;
@@ -449,7 +446,6 @@ public class DataFlow {
             x += block.getCodes().size();
             rt.add(x - block.getCodes().size() + 1);
         }
-        // System.out.println(fun + " block begin: " + rt.stream().sorted().collect(Collectors.toList()));
         return rt;
     }
 

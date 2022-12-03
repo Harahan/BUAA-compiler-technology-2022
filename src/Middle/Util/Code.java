@@ -100,19 +100,27 @@ public class Code {
     public static final Pattern label = Pattern.compile("^\\(LABEL\\d+\\)$");
 
     public Code(Op instr, String ord1, String ord2, String res) {
-        this.instr = instr;
-        this.ord1 = ord1;
-        this.ord2 = ord2;
-        this.res = res;
-        Matcher matcherOrd1 = varPattern.matcher(ord1);
-        Matcher matcherOrd2 = varPattern.matcher(ord2);
-        Matcher matcherRes = varPattern.matcher(res);
+        if ("-0123456789".indexOf(ord1.charAt(0)) != -1 && (instr == Op.ADD || instr == Op.MUL || instr == Op.EQ || instr == Op.NE)) {
+            // System.out.println("Error: " + instr + " " + ord1 + " " + ord2 + " " + res);
+            this.instr = instr;
+            this.ord1 = ord2;
+            this.ord2 = ord1;
+            this.res = res;
+        } else {
+            this.instr = instr;
+            this.ord1 = ord1;
+            this.ord2 = ord2;
+            this.res = res;
+        }
+        Matcher matcherOrd1 = varPattern.matcher(this.ord1);
+        Matcher matcherOrd2 = varPattern.matcher(this.ord2);
+        Matcher matcherRes = varPattern.matcher(this.res);
         if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(1), null);
         if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(1), null);
         if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(1), null);
-        matcherOrd1 = tempVarPattern.matcher(ord1);
-        matcherOrd2 = tempVarPattern.matcher(ord2);
-        matcherRes = tempVarPattern.matcher(res);
+        matcherOrd1 = tempVarPattern.matcher(this.ord1);
+        matcherOrd2 = tempVarPattern.matcher(this.ord2);
+        matcherRes = tempVarPattern.matcher(this.res);
         if (matcherOrd1.matches()) symbolOrd1 = Visitor.str2Symbol.getOrDefault(matcherOrd1.group(0), null);
         if (matcherOrd2.matches()) symbolOrd2 = Visitor.str2Symbol.getOrDefault(matcherOrd2.group(0), null);
         if (matcherRes.matches()) symbolRes = Visitor.str2Symbol.getOrDefault(matcherRes.group(0), null);

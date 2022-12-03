@@ -258,6 +258,47 @@ public class Block {
                 }
             }
         }
+
+        // peep hole optimization
+        if (MipsGenerator.optimize.get("MidCodeOptimize")) {
+            for (int i = 0; i < res.size(); ++i) {
+                Code code = res.get(i);
+                Code nxt = i + 1 < res.size() ? res.get(i + 1) : null;
+                if (code.getOrd1().equals(code.getRes())) continue;
+                if (nxt != null && check(code, Code.Op.ADD) && check(nxt, Code.Op.SUB) && code.getRes().equals(nxt.getOrd1())) {
+                    int x = Integer.parseInt(code.getOrd2());
+                    int y = Integer.parseInt(nxt.getOrd2());
+                    nxt.clearOrd1(code.getOrd1());
+                    nxt.clearOrd2(String.valueOf(y - x));
+                    flag = true;
+                } else if (nxt != null && check(code, Code.Op.SUB) && check(nxt, Code.Op.ADD) && code.getRes().equals(nxt.getOrd1())) {
+                    int x = Integer.parseInt(code.getOrd2());
+                    int y = Integer.parseInt(nxt.getOrd2());
+                    nxt.clearOrd1(code.getOrd1());
+                    nxt.clearOrd2(String.valueOf(y - x));
+                    flag = true;
+                } else if (nxt != null && check(code, Code.Op.SUB) && check(nxt, Code.Op.SUB) && code.getRes().equals(nxt.getOrd1())) {
+                    int x = Integer.parseInt(code.getOrd2());
+                    int y = Integer.parseInt(nxt.getOrd2());
+                    nxt.clearOrd1(code.getOrd1());
+                    nxt.clearOrd2(String.valueOf(x + y));
+                    flag = true;
+                } else if (nxt != null && check(code, Code.Op.ADD) && check(nxt, Code.Op.ADD) && code.getRes().equals(nxt.getOrd1())) {
+                    int x = Integer.parseInt(code.getOrd2());
+                    int y = Integer.parseInt(nxt.getOrd2());
+                    nxt.clearOrd1(code.getOrd1());
+                    nxt.clearOrd2(String.valueOf(x + y));
+                    flag = true;
+                } else if (nxt != null && check(code, Code.Op.MUL) && check(nxt, Code.Op.MUL) && code.getRes().equals(nxt.getOrd1())) {
+                    int x = Integer.parseInt(code.getOrd2());
+                    int y = Integer.parseInt(nxt.getOrd2());
+                    nxt.clearOrd1(code.getOrd1());
+                    nxt.clearOrd2(String.valueOf(x * y));
+                    flag = true;
+                }
+            }
+        }
+
         if (flag && res.size() == sz) {
             //System.out.println(codes);
             res.add(new Code(Code.Op.NOP, "(EMPTY)", "(EMPTY)", "(EMPTY)"));
@@ -266,6 +307,11 @@ public class Block {
         codes = res;
         //System.out.println("Block " + id + " " + codes);
         return res;
+    }
+
+
+    boolean check(Code code, Code.Op op) {
+        return code.getInstr() == op && "-0123456789".indexOf(code.getOrd2().charAt(0)) != -1;
     }
 
     public boolean broadcastCode() {

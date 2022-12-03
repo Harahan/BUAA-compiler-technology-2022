@@ -2,16 +2,12 @@ import Backend.MipsGenerator;
 import Lexer.Lexer;
 import Middle.MidCodeList;
 import Middle.Optimization.DataFlow;
-import Middle.Util.Code;
 import Middle.Visitor;
 import Syntax.Parser;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.regex.Matcher;
 
 import Error.ErrorTable;
 
@@ -60,7 +56,6 @@ public class Compiler {
         if (optimize.get("ExtractLoopConstExp")) dataFlow.extractLoopConstExp();
         MidCodeList.codes = dataFlow.getCodes();
         write(MidCodeList.printMidCode(), "ir_opt.txt");
-        // dataFlow.printGraph();
         write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(true), "mips.txt");
     }
 }
