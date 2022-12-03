@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class MipsGenerator {
     public static HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
         put("MulDiv", true);
-        put("DeleteDeadCode", false);
+        put("DeleteDeadCode", true);
         put("PeepHole", true);
         put("BroadcastCode", true); // const and val both
         put("TmpRegisterAlloc", true);

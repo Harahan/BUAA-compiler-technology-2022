@@ -51,8 +51,8 @@ public class Compiler {
         dataFlow.divideBlock();
         dataFlow.arriveDataAnalysis();
         dataFlow.activeDataAnalysis();
-        if (optimize.get("DeleteDeadCode")) dataFlow.deleteDeadCode();
         if (optimize.get("BroadcastCode")) dataFlow.broadcastCode();
+        if (optimize.get("DeleteDeadCode")) dataFlow.deleteDeadCode();
         if (optimize.get("ExtractLoopConstExp")) dataFlow.extractLoopConstExp();
         MidCodeList.codes = dataFlow.getCodes();
         write(MidCodeList.printMidCode(), "ir_opt.txt");

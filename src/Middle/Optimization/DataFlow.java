@@ -350,6 +350,8 @@ public class DataFlow {
         codes.addAll(post);
     }
 
+    // ------------------ delete useless code ------------------
+
     public void deleteDeadCode() {
         for (String func : func2blocks.keySet()) {
             boolean changed = deleteDeadCode(func);
