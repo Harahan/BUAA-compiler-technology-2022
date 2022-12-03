@@ -108,7 +108,7 @@ public class DataFlow {
                     --i;
                 }
             }
-
+            //System.out.println(codes);
             HashMap<String, Integer> label2id = new HashMap<>();
             for (int i = 0; i < codes.size(); ++i) {
                 if (codes.get(i).getInstr() == Op.LABEL) label2id.put(codes.get(i).getOrd1(), i);
@@ -332,13 +332,15 @@ public class DataFlow {
             rt.addAll(block.deleteDeadCode());
             if (!x) x = rt.size() - y != z;
         }
-        func2codes.put(fun, rt);
-
+        changeCodes(fun, rt);
         //if (x == true) System.out.println(rt);
         return x;
     }
 
     private void changeCodes(String fun, ArrayList<Code> rt) {
+        // System.out.println("change " + rt);
+        func2codes.put(fun, rt);
+        // System.out.println(" mmm" + rt);
         int i = 0, j = 0;
         for (int k = 0; k < codes.size(); ++k) {
             if (codes.get(k).getInstr() == Op.FUNC && codes.get(k).getOrd1().equals(fun)) i = k;
@@ -354,14 +356,11 @@ public class DataFlow {
     public void deleteDeadCode() {
         for (String func : func2blocks.keySet()) {
             boolean changed = deleteDeadCode(func);
-            // System.out.println(changed);
             while (changed) {
-                // System.out.println( " " +  func + " " + func2codes.get(func));
                 divideBlock(func, func2codes.get(func));
                 arriveDataAnalysis(func);
                 activeDataAnalysis(func);
                 changed = deleteDeadCode(func);
-                // System.out.println(changed);
             }
         }
     }
@@ -387,6 +386,26 @@ public class DataFlow {
                 deleteDeadCode();
                 changed = broadcastCode(func);
             }
+        }
+    }
+
+    // ------------------ extract loop expression ------------------
+    public void extractLoopConstExp() {
+        for (String func : func2blocks.keySet()) {
+            ArrayList<Block> blocks = func2blocks.get(func);
+            boolean changed;
+            do {
+                OptimizeLoop opt = new OptimizeLoop(func, blocks);
+                ArrayList<Code> funcCodes = new ArrayList<>();
+                for (Block b : func2blocks.get(func)) funcCodes.addAll(b.getCodes());
+                changeCodes(func, funcCodes);
+                divideBlock(func, funcCodes);
+                arriveDataAnalysis(func);
+                activeDataAnalysis(func);
+                if (MipsGenerator.optimize.get("BroadcastCode")) broadcastCode();
+                if (MipsGenerator.optimize.get("DeleteDeadCode")) deleteDeadCode();
+                changed = !opt.ok;
+            } while (changed);
         }
     }
 

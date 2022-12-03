@@ -31,6 +31,7 @@ public class MipsGenerator {
         put("MidCodeOptimize", true);
         put("JumpOptimize", true);
         put("RemoveRedundantCall", true);
+        put("ExtractLoopConstExp", true);
     }};
 
     public static ArrayList<String> mipsCodeList = new ArrayList<>();

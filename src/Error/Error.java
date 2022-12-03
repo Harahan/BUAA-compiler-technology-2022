@@ -1,5 +1,7 @@
 package Error;
 
+import java.util.Objects;
+
 public class Error implements Comparable<Error> {
     private final Type type;
     private final int line;
@@ -30,6 +32,19 @@ public class Error implements Comparable<Error> {
     @Override
     public int compareTo(Error o) {
         return Integer.compare(line, o.getLine());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Error error = (Error) o;
+        return line == error.line && type == error.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, line);
     }
 
     public enum Type {

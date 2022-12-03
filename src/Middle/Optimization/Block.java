@@ -32,7 +32,7 @@ public class Block {
     private final int id;
     private final String func;
 
-    public static int magic = 0;
+    public int lp = 0;
 
     public Block(Integer id, ArrayList<Code> codes, String func) {
         this.codes = codes;
@@ -114,8 +114,6 @@ public class Block {
         ArrayList<Code> newCodes = new ArrayList<>();
         HashSet<Symbol> live = new HashSet<>();
         activeOut.forEach(meta -> live.add(meta.getSymbol()));
-        // System.out.println(live);
-        // System.out.println(live + " " + codes);
         for (int i = codes.size() - 1; i >= 0; --i) {
             Code code = codes.get(i);
             // 注意全局变量的处理
@@ -128,8 +126,6 @@ public class Block {
             } else if (code.getDef() != null && !live.contains(code.getDef()) && code.getInstr() == Code.Op.GET_INT) {
                 code.clearRes(null);
                 newCodes.add(code);
-            } else {
-                //System.out.println("delete dead code: " + code);
             }
         }
         // reverse newCodes
@@ -268,6 +264,7 @@ public class Block {
             // System.out.println(res);
         }
         codes = res;
+        //System.out.println("Block " + id + " " + codes);
         return res;
     }
 
@@ -495,8 +492,34 @@ public class Block {
 
         @Override
         public String toString() {
+            if (code == null) return symbol.getNickname();
             return "<" + blockId + ", " + codeId + ", [" + code + "], " + symbol.getNickname() + ">";
         }
     }
+
+    // 计算block中每一条代码的到达in和out
+    public HashMap<Integer, HashSet<Meta>> calcCodeArriveIn() {
+        HashMap<Integer, HashSet<Meta>> codeArriveIn = new HashMap<>();
+        HashMap<Integer, HashSet<Meta>> codeArriveOut = new HashMap<>();
+        for (int i = 0; i < codes.size(); i++) {
+            Code code = codes.get(i);
+            HashSet<Meta> in = new HashSet<>();
+            if (i == 0) {
+                in.addAll(arriveIn);
+            } else {
+                in.addAll(codeArriveOut.get(i - 1));
+            }
+            HashSet<Meta> out = new HashSet<>(in);
+            Symbol res = code.getGen();
+            if (res != null) {
+                out.removeIf(meta -> meta.getSymbol().equals(res));
+                out.add(new Meta(id, i, code, res));
+            }
+            codeArriveIn.put(i, in);
+            codeArriveOut.put(i, out);
+        }
+        return codeArriveIn;
+    }
+
 }
 
