@@ -1,13 +1,9 @@
 package Backend.Optimization;
 
-import Backend.MipsGenerator;
 import Backend.Util.Instruction;
-import Backend.Util.RegAlloc;
 import Symbol.Symbol;
-import Symbol.Tmp;
 
 import java.util.ArrayList;
-import java.util.Locale;
 
 public class MulDiv {
     public static int N = 32;
@@ -78,7 +74,7 @@ public class MulDiv {
             rt.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, resReg, resReg, 1)));
             rt.add("div_" + magic + ":");
             return rt;
-        } else if (Math.abs(d) == 1) {
+        } else if (Math.abs(d) == 1 && !resReg.equals(valReg)) {
             rt.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, resReg, valReg)));
         } else if (Math.abs(d) == (1 << l)) {
             rt.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.sra, "$a1", valReg, (int) l - 1)));

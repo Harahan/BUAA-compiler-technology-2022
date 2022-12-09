@@ -1,14 +1,13 @@
 package Symbol;
 
 import Middle.Visitor;
-import Syntax.Expr.Multi.Exp;
 
 import java.util.ArrayList;
 
 public class Val implements Symbol {
     private final String name;
     private final boolean isConst;
-    private ArrayList<Integer> initVal = new ArrayList<>();
+    private final ArrayList<Integer> initVal = new ArrayList<>();
     private int addr;
     private final int dim;
     private final ArrayList<Integer> dims = new ArrayList<>();
@@ -17,11 +16,13 @@ public class Val implements Symbol {
     private final SymbolTable symbolTable;
     private boolean hasInitVal = true;
 
+    public boolean isArrayInMain = false;
+
     public Val(String name, boolean isConst, int dim, ArrayList<Integer> dims, SymbolTable symbolTable) {
         this.name = name;
         this.isConst = isConst;
         this.dim = dim;
-        if (dims != null ) this.dims.addAll(dims);
+        if (dims != null) this.dims.addAll(dims);
         this.blockLevel = symbolTable.getBlockLevel();
         this.blockNum = symbolTable.getBlockNum();
         this.symbolTable = symbolTable;

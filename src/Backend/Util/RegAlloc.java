@@ -1,33 +1,15 @@
 package Backend.Util;
 
 import Backend.MipsGenerator;
-import Symbol.Symbol;
+import Middle.Visitor;
+import Symbol.Func;
 import Symbol.FuncFormParam;
+import Symbol.Symbol;
 
 import java.util.HashMap;
-import java.util.Objects;
 
 public class RegAlloc {
-    public static final HashMap<String, Pair<Symbol, Integer>> regMap = new HashMap<String, Pair<Symbol, Integer>>() {{
-        // $zero -- 0寄存器， $at -- 操作系统使用，
-        /* $v0 -- 系统调用， 函数返回值*/put("$v1", null);
-        /* $a0 -- 赋值立即数，系统调用， $a1 -- 移位,比较*/
-        put("$a2", null); put("$a3", null);
-       put("$t0", null); put("$t1", null);
-       put("$t2", null); put("$t3", null);
-       put("$t4", null); put("$t5", null);
-       put("$t6", null); put("$t7", null);
-       put("$s0", null); put("$s1", null);
-       put("$s2", null); put("$s3", null);
-       put("$s4", null); put("$s5", null);
-       put("$s6", null); put("$s7", null);
-       put("$t8", null); put("$t9", null);
-       put("$k0", null); put("$k1", null);
-        //  $gp -- 全局int变量指针，$sp -- 栈指针，
-       put("$fp", null); // $ra -- 返回值
-    }};
-
-    private static final String[] availableRegs = new String[] {
+    public static final String[] Regs = new String[]{
             /*"$zero", "$at", "$v0",*/ "$v1",
             /*"$a0", $a1*/"$a2", "$a3",
             "$t0", "$t1", "$t2", "$t3",
@@ -35,205 +17,176 @@ public class RegAlloc {
             "$s0", "$s1", "$s2", "$s3",
             "$s4", "$s5", "$s6", "$s7",
             "$t8", "$t9", "$k0", "$k1",
-            /*"$gp", "$sp",*/ "$fp", /*"$ra"*/
+            /*"$gp", "$sp",*/ "$fp" /*,"$ra"*/
     };
+    public final ColorAlloc ca;
+    public final HashMap<String, Boolean> dirtyRegs = new HashMap<>();
+    public final HashMap<String, Symbol> regMap = new HashMap<>();
+    public final HashMap<Symbol, String> graphMap = new HashMap<>();
+    public int ptr = 0;
+    public String[] clockRegs;
 
-    public static final HashMap<String, Integer> totRegs = new HashMap<String, Integer>() {{
-        put("$zero", 0); put("$at", 1);
-        put("$v0", 2); put("$v1", 3);
-        put("$a0", 4); put("$a1", 5);
-        put("$a2", 6); put("$a3", 7);
-        put("$t0", 8); put("$t1", 9);
-        put("$t2", 10); put("$t3", 11);
-        put("$t4", 12); put("$t5", 13);
-        put("$t6", 14); put("$t7", 15);
-        put("$s0", 16); put("$s1", 17);
-        put("$s2", 18); put("$s3", 19);
-        put("$s4", 20); put("$s5", 21);
-        put("$s6", 22); put("$s7", 23);
-        put("$t8", 24); put("$t9", 25);
-        put("$k0", 26); put("$k1", 27);
-        put("$gp", 28); put("$sp", 29);
-        put("$fp", 30); put("$ra", 31);
-    }};
-
-    public static final HashMap<String, Boolean> dirtyRegs = new HashMap<String, Boolean>() {{
-        /*put("$zero", false); put("$at", false);
-        put("$v0", false);*/ put("$v1", false);
-        /*put("$a0", false); put("$a1", false);*/
-        put("$a2", false); put("$a3", false);
-        put("$t0", false); put("$t1", false);
-        put("$t2", false); put("$t3", false);
-        put("$t4", false); put("$t5", false);
-        put("$t6", false); put("$t7", false);
-        put("$s0", false); put("$s1", false);
-        put("$s2", false); put("$s3", false);
-        put("$s4", false); put("$s5", false);
-        put("$s6", false); put("$s7", false);
-        put("$t8", false); put("$t9", false);
-        put("$k0", false); put("$k1", false);
-        /*put("$gp", false); put("$sp", false);*/
-        put("$fp", false); /*put("$ra", false);*/
-    }};
-
-    private static int ptr = -1;
-
-    /**
-     * 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
-     */
-    public static String mandatoryAllocOne(Symbol sym, Integer off, boolean set) {
-        int x = ptr;
-        ptr = (ptr + 1) % availableRegs.length;
-        while (ptr != x && regMap.get(availableRegs[ptr]) != null) ptr = (ptr + 1) % availableRegs.length;
-        if (regMap.get(availableRegs[ptr]) == null) {
-            if (set) {
-                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
-                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
-            }
-            return availableRegs[ptr];
+    public RegAlloc(String name) {
+        this.ca = ((Func) Visitor.str2Symbol.get(name)).ca;
+        clockRegs = new String[Regs.length - ca.tot];
+        System.arraycopy(Regs, ca.tot, clockRegs, 0, Regs.length - ca.tot);
+        for (Symbol sym : ca.mp.keySet()) {
+            if (ca.regAlloc[ca.mp.get(sym)] != -1) graphMap.put(sym, Regs[ca.regAlloc[ca.mp.get(sym)]]);
         }
-        // alloc clean reg
-        ptr = (ptr + 1) % availableRegs.length;
-        while (ptr != x && dirtyRegs.get(availableRegs[ptr])) ptr = (ptr + 1) % availableRegs.length;
-        if (!dirtyRegs.get(availableRegs[ptr])) {
-            regMap.put(availableRegs[ptr], null);
-            if (set) {
-                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
-                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
-            }
-            return availableRegs[ptr];
+        for (String reg : Regs) {
+            dirtyRegs.put(reg, false);
+            regMap.put(reg, null);
         }
-        ptr = (ptr + 1) % availableRegs.length;
-        String reg = availableRegs[ptr];
-        Pair<Symbol, Integer> p = regMap.get(reg);
-        regMap.put(reg, null);
-        if ((!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) && p.getKey().getBlockLevel() != 0) {
-            MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
-            MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
-        }
-        if (set) {
-            regMap.put(reg, new Pair<>(sym, off));
-            /*if (sym.getNickname().equals("i(1,7)"))*/ MipsGenerator.mipsCodeList.add("# " + reg + " <--- " + sym.getNickname());
-        }
-        return reg;
+        //for (Symbol s : ca.param.keySet()) {
+        //    regMap.put(Regs[ca.regAlloc[ca.mp.get(s)]], s);
+        //    dirtyRegs.put(Regs[ca.regAlloc[ca.mp.get(s)]], true);
+        //}
     }
 
-    public static String mandatoryAllocOne(String o, Symbol sym, Integer off, boolean set) {
-        int x = ptr;
-        ptr = (ptr + 1) % availableRegs.length;
-        while (ptr != x && (regMap.get(availableRegs[ptr]) != null || availableRegs[ptr].equals(o))) ptr = (ptr + 1) % availableRegs.length;
-        if (regMap.get(availableRegs[ptr]) == null && !availableRegs[ptr].equals(o)) {
-            if (set) {
-                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
-                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
-            }
-            return availableRegs[ptr];
-        }
-        // alloc clean reg
-        ptr = (ptr + 1) % availableRegs.length;
-        while (ptr != x && (dirtyRegs.get(availableRegs[ptr]) || availableRegs[ptr].equals(o))) ptr = (ptr + 1) % availableRegs.length;
-        if (!dirtyRegs.get(availableRegs[ptr]) && !availableRegs[ptr].equals(o)) {
-            regMap.put(availableRegs[ptr], null);
-            if (set) {
-                MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
-                regMap.put(availableRegs[ptr], new Pair<>(sym, off));
-            }
-            return availableRegs[ptr];
-        }
-        ptr = (ptr + 1) % availableRegs.length;
-        if (availableRegs[ptr].equals(o)) ptr = (ptr + 1) % availableRegs.length;
-        String reg = availableRegs[ptr];
-        Pair<Symbol, Integer> p = regMap.get(reg);
-        regMap.put(reg, null);
-        if ((!(p.getKey() instanceof FuncFormParam) || p.getKey().getDim() == 0) && p.getKey().getBlockLevel() != 0) {
-            MipsGenerator.mipsCodeList.add("# " + reg + ": " + p.getKey().getName() + " ---> MEM");
-            MipsGenerator.pushBackOrLoadFromMem(reg, p.getKey(), p.getValue(), Instruction.LS.Op.sw);
-        }
-        if (set) {
-            regMap.put(reg, new Pair<>(sym, off));
-            /*if (sym.getNickname().equals("i(1,7)"))*/ MipsGenerator.mipsCodeList.add("# " + reg + " <--- " + sym.getNickname());
-        }
-        return reg;
-    }
+    // ------- clock regs -------
 
-    public static void mandatorySet(String reg, Symbol sym, Integer off) {
-        /*if (sym.getNickname().equals("i(1,7)"))*/ MipsGenerator.mipsCodeList.add("# " + reg + " <--- " + sym.getNickname());
-        // find reg by new Pair<>(sym, off)
-        for (String r : regMap.keySet()) {
-            Pair<Symbol, Integer> p = regMap.get(r);
-            if (p != null && p.getKey().getNickname().equals(sym.getNickname()) && Objects.equals(p.getValue(), off)) {
-                MipsGenerator.mipsCodeList.add("# " + r + ": " + sym.getNickname() + "change to " + reg);
-                regMap.put(r, null);
-                break;
-            }
-        }
-        regMap.put(reg, new Pair<>(sym, off));
-    }
-
-    public static void allocFreeOne(Symbol sym, Integer off) {
-        int x = ptr;
-        ptr = (ptr + 1) % availableRegs.length;
-        while (ptr != x && regMap.get(availableRegs[ptr]) != null) ptr = (ptr + 1) % availableRegs.length;
-        if (regMap.get(availableRegs[ptr]) == null) {
-            MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
-            regMap.put(availableRegs[ptr], new Pair<>(sym, off));
-            return;
-        }
-        ptr = (ptr + 1) % availableRegs.length;
-        // alloc clean reg
-        while (ptr != x && dirtyRegs.get(availableRegs[ptr])) ptr = (ptr + 1) % availableRegs.length;
-        if (!dirtyRegs.get(availableRegs[ptr])) {
-            MipsGenerator.mipsCodeList.add("# " + availableRegs[ptr] + " <--- " + sym.getNickname());
-            regMap.put(availableRegs[ptr], new Pair<>(sym, off));
+    public void clkRefresh() {
+        for (String reg : clockRegs) {
+            dirtyRegs.put(reg, false);
+            regMap.put(reg, null);
         }
     }
 
-    public static String find(Symbol sym, Integer off) {
-        for (String reg : availableRegs) {
-            Pair<Symbol, Integer> p = regMap.get(reg);
-            // System.out.println(p);
-            if (p != null && p.getKey().equals(sym) && p.getValue().equals(off)) {
-                /*if (sym.getNickname().equals("i(1,7)"))*/ MipsGenerator.mipsCodeList.add("# " + reg + " <--- " + sym.getNickname());
-                return reg;
-            }
-        }
-        return null;
-    }
-
-    public static HashMap<String, Pair<Symbol, Integer>> getAllUsed() {
-        HashMap<String, Pair<Symbol, Integer>> used = new HashMap<>();
-        for (String reg : availableRegs) {
-            Pair<Symbol, Integer> p = regMap.get(reg);
-            if (p != null && dirtyRegs.get(reg)) used.put(reg, p);
+    public HashMap<String, Symbol> clkGetAllUsed() {
+        HashMap<String, Symbol> used = new HashMap<>();
+        for (String reg : clockRegs) {
+            if (regMap.get(reg) != null) used.put(reg, regMap.get(reg));
         }
         return used;
     }
 
-    public static void refreshOne(String reg) {
-        Pair<Symbol, Integer> p = regMap.get(reg);
+    private int nxt() {
+        return (ptr + 1) % clockRegs.length;
+    }
+
+    public String clkAllocFreeOne(Symbol sym, String conflict, boolean mp) {
+        int x = ptr;
+        ptr = nxt();
+        while (ptr != x && (regMap.get(clockRegs[ptr]) != null || clockRegs[ptr].equals(conflict))) ptr = nxt();
+        if (regMap.get(clockRegs[ptr]) == null && !clockRegs[ptr].equals(conflict)) {
+            if (mp) regMap.put(clockRegs[ptr], sym);
+            MipsGenerator.mipsCodeList.add("#" + clockRegs[ptr] + " <--- " + sym.getName());
+            return clockRegs[ptr];
+        }
+        ptr = nxt();
+        while (ptr != x && (dirtyRegs.get(clockRegs[ptr]) || clockRegs[ptr].equals(conflict))) ptr = nxt();
+        if (!dirtyRegs.get(clockRegs[ptr]) && !clockRegs[ptr].equals(conflict)) {
+            if (mp) regMap.put(clockRegs[ptr], sym);
+            MipsGenerator.mipsCodeList.add("#" + clockRegs[ptr] + " <--- " + sym.getName());
+            return clockRegs[ptr];
+        }
+        return null;
+    }
+
+    public String clkMandatoryAlloc(Symbol sym, String conflict, boolean mp) {
+        String reg = clkAllocFreeOne(sym, conflict, mp);
+        if (reg != null) return reg;
+        ptr = nxt();
+        if (clockRegs[ptr].equals(conflict)) ptr = nxt();
+        reg = clockRegs[ptr];
+        Symbol s = regMap.get(reg);
+        if ((!(s instanceof FuncFormParam) || s.getDim() == 0) && s.getBlockLevel() != 0) {
+            MipsGenerator.mipsCodeList.add("#MEM" + " <--- " + s.getName() + ": " + reg);
+            MipsGenerator.pushBackOrLoadFromMem(reg, s, 0, Instruction.LS.Op.sw);
+        }
+        if (mp) regMap.put(reg, sym);
+        return reg;
+    }
+
+    // ------- graph regs -------
+
+    public boolean inGraph(Symbol sym) {
+        return graphMap.containsKey(sym);
+    }
+
+    public HashMap<Symbol, Boolean> getGraphVar() {
+        HashMap<Symbol, Boolean> ret = new HashMap<>();
+        for (String reg : regMap.keySet()) {
+            Symbol s = regMap.get(reg);
+            if (s != null && inGraph(s)) ret.put(s, dirtyRegs.get(reg));
+        }
+        return ret;
+    }
+
+
+    // ------- tot regs -------
+
+    public void saveToMem(String reg) {
+        dirtyRegs.put(reg, false);
+        MipsGenerator.mipsCodeList.add("#MEM" + " <--- " + regMap.get(reg).getName() + ": " + reg);
+        MipsGenerator.pushBackOrLoadFromMem(reg, regMap.get(reg), 0, Instruction.LS.Op.sw);
+    }
+
+    public String find(Symbol sym) {
+        for (String reg : Regs) {
+            if (regMap.get(reg) == sym) return reg;
+        }
+        if (graphMap.containsKey(sym)) {
+            dirtyRegs.put(graphMap.get(sym), false);
+            regMap.put(graphMap.get(sym), sym);
+            return graphMap.get(sym);
+        }
+        return null;
+    }
+
+    public boolean isDirty(String reg) {
+        return dirtyRegs.get(reg);
+    }
+
+    public void setDirty(String reg) {
+        dirtyRegs.put(reg, true);
+    }
+
+    public HashMap<String, Symbol> getAllUsed() {
+        HashMap<String, Symbol> used = new HashMap<>();
+        for (String reg : Regs) {
+            if (regMap.get(reg) != null) used.put(reg, regMap.get(reg));
+        }
+        return used;
+    }
+
+    public void refresh() {
+        for (String reg : Regs) {
+            dirtyRegs.put(reg, false);
+            regMap.put(reg, null);
+        }
+    }
+
+    public void refreshOne(String reg) {
         dirtyRegs.put(reg, false);
         regMap.put(reg, null);
     }
 
-    public static void reflectOne(String reg, Pair<Symbol, Integer> p) {
-        // System.out.println(reg + " " + p);
-        regMap.put(reg, p);
+    public String alloc(Symbol sym, boolean force, String conflict, boolean mp) {
+        if (graphMap.containsKey(sym)) {
+            if (mp) regMap.put(graphMap.get(sym), sym);
+            MipsGenerator.mipsCodeList.add("#" + graphMap.get(sym) + " <--- " + sym.getName() + " (graph)");
+            return graphMap.get(sym);
+        }
+        if (!force) return clkAllocFreeOne(sym, conflict, mp);
+        else return clkMandatoryAlloc(sym, conflict, mp);
     }
 
-    static public class Pair<K, T> {
-        private K k;
-        private T t;
-        public Pair(K k, T t) {
-            this.t = t;
-            this.k = k;
-        }
+    public void map(String reg, Symbol sym) {
+        regMap.put(reg, sym);
+    }
 
-        public K getKey() {
-            return k;
-        }
 
-        public T getValue() {
-            return t;
+    public Symbol get(String reg) {
+        return regMap.get(reg);
+    }
+
+    public void recover(HashMap<Symbol, Boolean> x, HashMap<Symbol, String> y) {
+        for (Symbol s : x.keySet()) {
+            boolean dirty = x.get(s);
+            String reg = y.get(s);
+            regMap.put(reg, s);
+            dirtyRegs.put(reg, dirty);
         }
     }
 }

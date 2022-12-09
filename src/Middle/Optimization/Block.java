@@ -1,18 +1,14 @@
 package Middle.Optimization;
 
 import Backend.MipsGenerator;
-import Backend.Util.RegAlloc;
 import Middle.Util.Code;
-import Symbol.*;
+import Symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static Middle.Util.Code.block;
-import static Middle.Util.Code.io;
 
 public class Block {
     private final HashSet<Integer> pre = new HashSet<>();
@@ -565,6 +561,30 @@ public class Block {
             codeArriveOut.put(i, out);
         }
         return codeArriveIn;
+    }
+
+    // 计算block中每一条代码的活跃in和out
+    public HashMap<Integer, HashSet<Meta>> calcCodeActiveOut() {
+        HashMap<Integer, HashSet<Meta>> codeActiveIn = new HashMap<>();
+        HashMap<Integer, HashSet<Meta>> codeActiveOut = new HashMap<>();
+        for (int i = codes.size() - 1; i >= 0; i--) {
+            Code code = codes.get(i);
+            HashSet<Meta> out = new HashSet<>();
+            if (i == codes.size() - 1) {
+                out.addAll(activeOut);
+            } else {
+                out.addAll(codeActiveIn.get(i + 1));
+            }
+            HashSet<Meta> in = new HashSet<>(out);
+            Symbol res = code.getDef();
+            if (res != null) {
+                in.removeIf(meta -> meta.getSymbol().equals(res));
+            }
+            in.addAll(code.getUse().keySet().stream().map(symbol -> new Meta(-1, -1, null, symbol)).collect(Collectors.toSet()));
+            codeActiveIn.put(i, in);
+            codeActiveOut.put(i, out);
+        }
+        return codeActiveOut;
     }
 
 }

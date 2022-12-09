@@ -1,4 +1,5 @@
 import Backend.MipsGenerator;
+import Error.ErrorTable;
 import Lexer.Lexer;
 import Middle.MidCodeList;
 import Middle.Optimization.DataFlow;
@@ -8,8 +9,6 @@ import Syntax.Parser;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-
-import Error.ErrorTable;
 
 import static Backend.MipsGenerator.optimize;
 
@@ -44,7 +43,7 @@ public class Compiler {
             write(parser.toString(), "output.txt");
         } else {
             write(ErrorTable.printError(), "error.txt");
-            return;
+            // return;
         }
         DataFlow dataFlow = new DataFlow(MidCodeList.codes);
         write(MidCodeList.printMidCode(), "ir.txt");

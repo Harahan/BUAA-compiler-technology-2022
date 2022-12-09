@@ -1,6 +1,7 @@
 package Symbol;
 
 
+import Backend.Util.ColorAlloc;
 import Middle.Visitor;
 
 public class Func implements Symbol {
@@ -117,4 +118,6 @@ public class Func implements Symbol {
     public void setHasIO(boolean hasIO) {
         this.hasIO = hasIO;
     }
+
+    public ColorAlloc ca;
 }

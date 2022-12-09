@@ -31,7 +31,6 @@ import Syntax.Util.Index;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Stack;
 
 public class Visitor {
@@ -45,6 +44,8 @@ public class Visitor {
     public static HashMap<String, Symbol> str2Symbol = new HashMap<>();
     private static final HashMap<Integer, Integer> blockLevelNum = new HashMap<>();
     private final Stack<String> whileBeginEndLabelStack = new Stack<>();
+
+    public static final ArrayList<Val> arrayInMain = new ArrayList<>();
 
     public Visitor(CompUnit compUnit) {
         compUnitTravel(compUnit);
@@ -127,19 +128,29 @@ public class Visitor {
             if (!def.isInit()) {
                 // 数组且非初始化
                 val = new Val(name, isConst, def.getDim(), dims, curTable);
+                if (MipsGenerator.optimize.get("ArrayInMainToGlobal")) {
+                    val.isArrayInMain = curFunc != null && curFunc.getName().equals("main");
+                    if (val.isArrayInMain) arrayInMain.add(val);
+                }
                 curTable.add(val);
                 nickname = val.getNickname();
                 MidCodeList.add(Code.Op.DEF_ARR, "(EMPTY)", "(EMPTY)", nickname);
                 if (dims.size() == 2) {
                     for (int i = 0; i < dims.get(0); ++i) {
-                        for (int j = 0; j < dims.get(1); ++j) val.addInitVal(blockLevel == 0 ? 0 : null);
+                        for (int j = 0; j < dims.get(1); ++j)
+                            val.addInitVal(blockLevel == 0 || val.isArrayInMain ? 0 : null);
                     }
                 } else {
-                    for (int i = 0; i < dims.get(0); ++i) val.addInitVal(blockLevel == 0 ? 0 : null);
+                    for (int i = 0; i < dims.get(0); ++i)
+                        val.addInitVal(blockLevel == 0 || val.isArrayInMain ? 0 : null);
                 }
             } else {
                 // 数组且初始化
                 val = new Val(name, isConst, def.getDim(), dims, curTable);
+                if (MipsGenerator.optimize.get("ArrayInMainToGlobal")) {
+                    val.isArrayInMain = curFunc != null && curFunc.getName().equals("main");
+                    if (val.isArrayInMain) arrayInMain.add(val);
+                }
                 curTable.add(val);
                 nickname = val.getNickname();
                 MidCodeList.add(Code.Op.DEF_ARR, "(EMPTY)", "(EMPTY)", nickname);
@@ -155,7 +166,8 @@ public class Visitor {
                         if (o.isEmpty()) { // {{} ...}
                             for (int j = 0; j < dims.get(1); ++j) {
                                 val.addInitVal(0);
-                                MidCodeList.add(Code.Op.ASSIGN, "0", "(EMPTY)", nickname + "[" + (i * dims.get(1) + j) + "]");
+                                if (!val.isArrayInMain)
+                                    MidCodeList.add(Code.Op.ASSIGN, "0", "(EMPTY)", nickname + "[" + (i * dims.get(1) + j) + "]");
                             }
                         } else { // {{2, 2} ...}
                             assert o.size() == dims.get(1);
@@ -165,9 +177,10 @@ public class Visitor {
                                 try {
                                     val.addInitVal(Integer.valueOf(x));
                                 } catch (Exception ignore) {
-                                    val.addInitVal(null);
+                                    val.addInitVal(val.isArrayInMain ? 0 : null);
                                 }
-                                MidCodeList.add(Code.Op.ASSIGN, x, "(EMPTY)", nickname + "[" + (i * dims.get(1) + j) + "]");
+                                if (!val.isArrayInMain || "-0123456789".indexOf(x.charAt(0)) == -1)
+                                    MidCodeList.add(Code.Op.ASSIGN, x, "(EMPTY)", nickname + "[" + (i * dims.get(1) + j) + "]");
                             }
                         }
                     }
@@ -176,7 +189,8 @@ public class Visitor {
                     if (vars.isEmpty()) {
                         for (int i = 0; i < dims.get(0); ++i) {
                             val.addInitVal(0);
-                            MidCodeList.add(Code.Op.ASSIGN, "0", "(EMPTY)", nickname + "[" + i + "]");
+                            if (!val.isArrayInMain)
+                                MidCodeList.add(Code.Op.ASSIGN, "0", "(EMPTY)", nickname + "[" + i + "]");
                         }
                     } else {
                         assert vars.size() == dims.size();
@@ -185,9 +199,10 @@ public class Visitor {
                             try {
                                 val.addInitVal(Integer.valueOf(x));
                             } catch (Exception ignore) {
-                                val.addInitVal(null);
+                                val.addInitVal(val.isArrayInMain ? 0 : null);
                             }
-                            MidCodeList.add(Code.Op.ASSIGN, x, "(EMPTY)", nickname + "[" + i + "]");
+                            if (!val.isArrayInMain || "-0123456789".indexOf(x.charAt(0)) == -1)
+                                MidCodeList.add(Code.Op.ASSIGN, x, "(EMPTY)", nickname + "[" + i + "]");
                         }
                     }
                 }

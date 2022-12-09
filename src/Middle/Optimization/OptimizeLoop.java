@@ -2,14 +2,14 @@ package Middle.Optimization;
 
 import Middle.Util.Code;
 import Middle.Visitor;
-import Symbol.*;
+import Symbol.Symbol;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class OptimizeLoop {
     public String name;
-    public ArrayList<Block> nodes = new ArrayList<>();
+    public ArrayList<Block> nodes;
     public HashMap<Integer, HashSet<Integer>> dom = new HashMap<>();
     // 回边
     public HashSet<Pair> backEdge = new HashSet<>();
@@ -215,7 +215,7 @@ public class OptimizeLoop {
                 }
             }
         } while (sz != invariant.size());
-        System.out.println("Invariant: " + invariant);
+        // System.out.println("Invariant: " + invariant);
         return invariant;
     }
 
@@ -270,7 +270,7 @@ public class OptimizeLoop {
                 deleteCodeMap.add(new Pair(i, j));
             }
         }
-        System.out.println("ExtractCode: " + extractCode);
+        // System.out.println("ExtractCode: " + extractCode);
         return extractCode;
     }
 

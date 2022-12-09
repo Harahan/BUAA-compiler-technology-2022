@@ -3,7 +3,6 @@ package Middle.Util;
 import Middle.Visitor;
 import Symbol.Symbol;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
@@ -11,6 +10,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Code {
+
+    public Symbol getConflict() {
+        if (alu.contains(instr) || instr == Op.GET_INT || instr == Op.DEF_VAL) return symbolRes;
+        if (instr == Op.PRINT_INT || instr == Op.PUSH_PAR_INT || jump.contains(instr)) return symbolOrd1;
+        return null;
+    }
+
     public enum Op {
         // ALU
         ASSIGN("="), // ASSIGN VAR (EMPTY) VAR

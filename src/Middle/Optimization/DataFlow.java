@@ -5,13 +5,16 @@ import Backend.Optimization.RedundantCall;
 import Middle.Util.Code;
 import Middle.Util.Code.Op;
 import Middle.Visitor;
-import Symbol.*;
+import Symbol.Func;
+import Symbol.Symbol;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 public class DataFlow {
-    private static final HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
+    public static final HashMap<String, ArrayList<Block>> func2blocks = new HashMap<>();
     private final HashMap<String, ArrayList<Code>> func2codes = new HashMap<>();
     private ArrayList<Code> codes;
     private final HashSet<Integer> ans = new HashSet<>();
@@ -412,46 +415,52 @@ public class DataFlow {
         return codes;
     }
 
-    public static HashSet<Symbol> getActiveOut(String fun, Integer codeId) {
-        if (fun == null || codeId == null) return null;
-        HashSet<Symbol> rt = new HashSet<>();
-        int x = -1;
-        boolean error = true;
-        for (Block block : func2blocks.get(fun)) {
-            x += block.getCodes().size();
-            if (x == codeId) {
-                block.getActiveOut().forEach(meta -> rt.add(meta.getSymbol()));
-                //System.out.println("active out: " + rt);
-                error = false;
-                break;
-            }
-        }
-        if (error) throw new RuntimeException("codeId error");
-        return rt;
-    }
-
-    public static HashSet<Integer> getBlockEnd(String fun) {
-        HashSet<Integer> rt = new HashSet<>();
+    public static HashMap<Integer, Integer> getBlockEnd(String fun) {
+        HashMap<Integer, Integer> rt = new HashMap<>();
         int x = -1;
         for (Block block : func2blocks.get(fun)) {
             x += block.getCodes().size();
-            rt.add(x);
+            rt.put(x, block.getId());
         }
         // System.out.println(fun + " block end: " + rt.stream().sorted().collect(Collectors.toList()));
         return rt;
     }
 
-    public static HashSet<Integer> getBlockBegin(String fun) {
-        HashSet<Integer> rt = new HashSet<>();
+    public static HashMap<Integer, Integer> getBlockBegin(String fun) {
+        HashMap<Integer, Integer> rt = new HashMap<>();
         int x = -1;
         for (Block block : func2blocks.get(fun)) {
             x += block.getCodes().size();
-            rt.add(x - block.getCodes().size() + 1);
+            rt.put(x - block.getCodes().size() + 1, block.getId());
         }
         return rt;
     }
 
-    public static ArrayList<Code> getBlockCodes(String fun, Integer blockId) {
-        return func2blocks.get(fun).get(blockId).getCodes();
+    public static Integer getBlockId(String fun, Integer codeId) {
+        int x = -1;
+        for (Block block : func2blocks.get(fun)) {
+            x += block.getCodes().size();
+            if (x >= codeId) {
+                return block.getId();
+            }
+        }
+        throw new RuntimeException("codeId error");
+    }
+
+    public static Integer getCodeId(String fun, Integer codeId) {
+        int x = -1;
+        for (Block block : func2blocks.get(fun)) {
+            x += block.getCodes().size();
+            if (x >= codeId) {
+                return codeId - x + block.getCodes().size() - 1;
+            }
+        }
+        throw new RuntimeException("codeId error");
+    }
+
+    public static HashSet<Symbol> getAco(String fun, Integer codeId) {
+        int cid = getCodeId(fun, codeId);
+        int bid = getBlockId(fun, codeId);
+        return func2blocks.get(fun).get(bid).calcCodeActiveOut().get(cid).stream().map(Block.Meta::getSymbol).collect(Collectors.toCollection(HashSet::new));
     }
 }
