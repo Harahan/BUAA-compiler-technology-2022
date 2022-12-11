@@ -7,6 +7,7 @@ import Symbol.FuncFormParam;
 import Symbol.Symbol;
 
 import java.util.HashMap;
+import java.util.Objects;
 
 public class RegAlloc {
     public static final String[] Regs = new String[]{
@@ -14,13 +15,13 @@ public class RegAlloc {
             /*"$a0", $a1*/"$a2", "$a3",
             "$t0", "$t1", "$t2", "$t3",
             "$t4", "$t5", "$t6", "$t7",
-            "$s0", "$s1", "$s2", "$s3",
+            "$s0", "$s1", /*"$s2", "$s3",
             "$s4", "$s5", "$s6", "$s7",
-            "$t8", "$t9", "$k0", "$k1",
+            "$t8", "$t9", "$k0", "$k1",*/
             /*"$gp", "$sp",*/ "$fp" /*,"$ra"*/
     };
     public final ColorAlloc ca;
-    public final HashMap<String, Boolean> dirtyRegs = new HashMap<>();
+    public final HashMap<String, Boolean> dirtyMap = new HashMap<>();
     public final HashMap<String, Symbol> regMap = new HashMap<>();
     public final HashMap<Symbol, String> graphMap = new HashMap<>();
     public int ptr = 0;
@@ -34,7 +35,7 @@ public class RegAlloc {
             if (ca.regAlloc[ca.mp.get(sym)] != -1) graphMap.put(sym, Regs[ca.regAlloc[ca.mp.get(sym)]]);
         }
         for (String reg : Regs) {
-            dirtyRegs.put(reg, false);
+            dirtyMap.put(reg, false);
             regMap.put(reg, null);
         }
         //for (Symbol s : ca.param.keySet()) {
@@ -47,7 +48,7 @@ public class RegAlloc {
 
     public void clkRefresh() {
         for (String reg : clockRegs) {
-            dirtyRegs.put(reg, false);
+            dirtyMap.put(reg, false);
             regMap.put(reg, null);
         }
     }
@@ -74,8 +75,8 @@ public class RegAlloc {
             return clockRegs[ptr];
         }
         ptr = nxt();
-        while (ptr != x && (dirtyRegs.get(clockRegs[ptr]) || clockRegs[ptr].equals(conflict))) ptr = nxt();
-        if (!dirtyRegs.get(clockRegs[ptr]) && !clockRegs[ptr].equals(conflict)) {
+        while (ptr != x && (dirtyMap.get(clockRegs[ptr]) || clockRegs[ptr].equals(conflict))) ptr = nxt();
+        if (!dirtyMap.get(clockRegs[ptr]) && !clockRegs[ptr].equals(conflict)) {
             if (mp) regMap.put(clockRegs[ptr], sym);
             MipsGenerator.mipsCodeList.add("#" + clockRegs[ptr] + " <--- " + sym.getName());
             return clockRegs[ptr];
@@ -104,11 +105,15 @@ public class RegAlloc {
         return graphMap.containsKey(sym);
     }
 
+    public boolean inGraph(String reg) {
+        return graphMap.containsValue(reg);
+    }
+
     public HashMap<Symbol, Boolean> getGraphVar() {
         HashMap<Symbol, Boolean> ret = new HashMap<>();
         for (String reg : regMap.keySet()) {
             Symbol s = regMap.get(reg);
-            if (s != null && inGraph(s)) ret.put(s, dirtyRegs.get(reg));
+            if (s != null && inGraph(s)) ret.put(s, dirtyMap.get(reg));
         }
         return ret;
     }
@@ -117,7 +122,7 @@ public class RegAlloc {
     // ------- tot regs -------
 
     public void saveToMem(String reg) {
-        dirtyRegs.put(reg, false);
+        dirtyMap.put(reg, false);
         MipsGenerator.mipsCodeList.add("#MEM" + " <--- " + regMap.get(reg).getName() + ": " + reg);
         MipsGenerator.pushBackOrLoadFromMem(reg, regMap.get(reg), 0, Instruction.LS.Op.sw);
     }
@@ -127,7 +132,7 @@ public class RegAlloc {
             if (regMap.get(reg) == sym) return reg;
         }
         if (graphMap.containsKey(sym)) {
-            dirtyRegs.put(graphMap.get(sym), false);
+            dirtyMap.put(graphMap.get(sym), false);
             regMap.put(graphMap.get(sym), sym);
             return graphMap.get(sym);
         }
@@ -135,11 +140,12 @@ public class RegAlloc {
     }
 
     public boolean isDirty(String reg) {
-        return dirtyRegs.get(reg);
+        return dirtyMap.get(reg);
     }
 
     public void setDirty(String reg) {
-        dirtyRegs.put(reg, true);
+        if (inGraph(reg)) return;
+        dirtyMap.put(reg, true);
     }
 
     public HashMap<String, Symbol> getAllUsed() {
@@ -152,13 +158,13 @@ public class RegAlloc {
 
     public void refresh() {
         for (String reg : Regs) {
-            dirtyRegs.put(reg, false);
+            dirtyMap.put(reg, false);
             regMap.put(reg, null);
         }
     }
 
     public void refreshOne(String reg) {
-        dirtyRegs.put(reg, false);
+        dirtyMap.put(reg, false);
         regMap.put(reg, null);
     }
 
@@ -186,7 +192,14 @@ public class RegAlloc {
             boolean dirty = x.get(s);
             String reg = y.get(s);
             regMap.put(reg, s);
-            dirtyRegs.put(reg, dirty);
+            dirtyMap.put(reg, dirty);
         }
+    }
+
+    public String getReg(Symbol s) {
+        for (String reg : regMap.keySet()) {
+            if (Objects.equals(regMap.get(reg), s)) return reg;
+        }
+        return null;
     }
 }

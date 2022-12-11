@@ -24,9 +24,10 @@ public class PeepHole {
             if (code.startsWith("j ")) {
                 String[] tokens = code.split(" ");
                 int j = i + 1;
-                while ((codes.get(j).startsWith("LABEL") || codes.get(j).startsWith("#") || codes.get(j).startsWith("\n")) && !codes.get(j).startsWith(tokens[1])) ++j;
+                while (j < codes.size() && (codes.get(j).startsWith("LABEL") || codes.get(j).startsWith("#") || codes.get(j).startsWith("\n")) && !codes.get(j).startsWith(tokens[1]))
+                    ++j;
                 // not LABEL or target
-                if (codes.get(j).startsWith(tokens[1])) {
+                if (j < codes.size() && codes.get(j).startsWith(tokens[1])) {
                     codes.remove(i);
                     --i;
                 }
@@ -34,9 +35,10 @@ public class PeepHole {
                 String[] tokens = code.split(" ");
                 // System.out.println(tokens[2]);
                 int j = i + 1;
-                while ((codes.get(j).startsWith("LABEL") || codes.get(j).startsWith("#") || codes.get(j).startsWith("\n")) && !codes.get(j).startsWith(tokens[2])) ++j;
+                while (j < codes.size() && (codes.get(j).startsWith("LABEL") || codes.get(j).startsWith("#") || codes.get(j).startsWith("\n")) && !codes.get(j).startsWith(tokens[2]))
+                    ++j;
                 // not LABEL or target
-                if (codes.get(j).startsWith(tokens[2])) {
+                if (j < codes.size() && codes.get(j).startsWith(tokens[2])) {
                     codes.remove(i);
                     --i;
                 }
@@ -48,9 +50,9 @@ public class PeepHole {
             if (code.startsWith("sw ")) {
                 String[] tokens = code.split(" ");
                 int j = i + 1;
-                while ((codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
+                while (j < codes.size() && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
                 // not LABEL or target
-                if (codes.get(j).startsWith("lw ")  && codes.get(j).split(" ")[1].startsWith(tokens[1]) && codes.get(j).split(" ")[2].equals(tokens[2])) {
+                if (j < codes.size() && codes.get(j).startsWith("lw ") && codes.get(j).split(" ")[1].startsWith(tokens[1]) && codes.get(j).split(" ")[2].equals(tokens[2])) {
                     codes.remove(j);
                     //codes.remove(i);
                     //--i;
@@ -63,9 +65,9 @@ public class PeepHole {
             if (code.startsWith("lw ")) {
                 String[] tokens = code.split(" ");
                 int j = i + 1;
-                while ((codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
+                while (j < codes.size() && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
                 // not LABEL or target
-                if (codes.get(j).startsWith("sw ") && codes.get(j).split(" ")[1].startsWith(tokens[1]) && codes.get(j).split(" ")[2].equals(tokens[2])) {
+                if (j < codes.size() && codes.get(j).startsWith("sw ") && codes.get(j).split(" ")[1].startsWith(tokens[1]) && codes.get(j).split(" ")[2].equals(tokens[2])) {
                     codes.remove(j);
                     // codes.remove(i);
                 }
@@ -82,6 +84,193 @@ public class PeepHole {
                     || (codes.get(i + 1).startsWith("addiu $a1, $a1, ")))) {
                 codes.remove(i);
                 codes.set(i, codes.get(i).replace("$a1, $a1, ", "$a1, $zero, "));
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (codes.get(i).equals("li $a1, 0")) {
+                int j = i + 1;
+                while (j < codes.size() && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
+                if (j < codes.size() && codes.get(j).startsWith("lw ")) {
+                    String[] code = codes.get(j).split(" ");
+                    if (!code[1].equals("$a1,") && !code[2].endsWith("($a1)")) {
+                        if (j + 1 < codes.size() &&
+                                (codes.get(j + 1).startsWith("addu $a1, $a1, ") || codes.get(j + 1).startsWith("addiu $a1, $a1, "))) {
+                            codes.remove(i);
+                            codes.set(j, codes.get(j).replace("$a1, $a1, ", "$a1, $zero, "));
+                        }
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 1 < codes.size() && codes.get(i).startsWith("addiu $a1, $zero, ") && codes.get(i + 1).equals("addu $a1, $a1, $sp")) {
+                codes.remove(i + 1);
+                codes.set(i, codes.get(i).replace("$zero, ", "$sp, "));
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 1 < codes.size()) {
+                String nxt = codes.get(i + 1);
+                String cur = codes.get(i);
+                if (nxt.startsWith("lw $ra, ") && cur.startsWith("move $v0, ")) {
+                    int j = i - 1;
+                    while (j >= 0 && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) --j;
+                    if (j >= 0) {
+                        String pre = codes.get(j);
+                        // System.out.println(pre);
+                        if (pre.split(" ").length >= 2 && pre.split(" ")[1].split(",")[0].equals(cur.split(" ")[2])) {
+                            String[] tokens = pre.split(" ");
+                            tokens[1] = tokens[1].replace(cur.split(" ")[2], "$v0");
+                            codes.set(j, String.join(" ", tokens));
+                            codes.remove(i);
+                            --i;
+                        }
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            String cur = codes.get(i);
+            if (cur.startsWith("beqz ")) {
+                int j = i - 1;
+                while (j >= 0 && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) --j;
+                if (j >= 0) {
+                    String pre = codes.get(j);
+                    if (pre.startsWith("seq ") && pre.split(" ")[1].equals(cur.split(" ")[1])) {
+                        String x = "bne ";
+                        x += pre.split(" ")[2] + " " + pre.split(" ")[3] + ", " + cur.split(" ")[2];
+                        codes.set(i, x);
+                        codes.remove(j);
+                        --i;
+                    } else if (pre.startsWith("sne ") && pre.split(" ")[1].equals(cur.split(" ")[1])) {
+                        String x = "beq ";
+                        x += pre.split(" ")[2] + " " + pre.split(" ")[3] + ", " + cur.split(" ")[2];
+                        codes.set(i, x);
+                        codes.remove(j);
+                        --i;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            String cur = codes.get(i);
+            if (cur.startsWith("bnez ")) {
+                int j = i - 1;
+                while (j >= 0 && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) --j;
+                if (j >= 0) {
+                    String pre = codes.get(j);
+                    if (pre.startsWith("sne ") && pre.split(" ")[1].equals(cur.split(" ")[1])) {
+                        String x = "bne ";
+                        x += pre.split(" ")[2] + " " + pre.split(" ")[3] + ", " + cur.split(" ")[2];
+                        codes.set(i, x);
+                        codes.remove(j);
+                        --i;
+                    } else if (pre.startsWith("seq ") && pre.split(" ")[1].equals(cur.split(" ")[1])) {
+                        String x = "beq ";
+                        x += pre.split(" ")[2] + " " + pre.split(" ")[3] + ", " + cur.split(" ")[2];
+                        codes.set(i, x);
+                        codes.remove(j);
+                        --i;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 1 < codes.size()) {
+                String nxt = codes.get(i + 1);
+                String cur = codes.get(i);
+                if (cur.startsWith("addu $a1, $zero, $") && nxt.startsWith("sw $a1, ") && nxt.endsWith("($sp)")) {
+                    if (i - 1 >= 0) {
+                        String pre = codes.get(i - 1);
+                        String[] tokens = pre.split(" ");
+                        if (tokens.length >= 2 && tokens[1].split(",")[0].equals(cur.split(" ")[3])) {
+                            codes.set(i + 1, nxt.replace("$a1", tokens[1].split(",")[0]));
+                            codes.remove(i);
+                            --i;
+                        }
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 1 < codes.size()) {
+                String nxt = codes.get(i + 1);
+                String cur = codes.get(i);
+                if (cur.startsWith("li $a0, ")) {
+                    int num = Integer.parseInt(cur.split(" ")[2]);
+                    if (nxt.startsWith("sge ") && nxt.endsWith("$a0") && num > Integer.MIN_VALUE) {
+                        codes.set(i, "li $a0, " + (num - 1));
+                        codes.set(i + 1, nxt.replace("sge", "sgt"));
+                    } else if (nxt.startsWith("sle ") && nxt.endsWith("$a0") && num < Integer.MAX_VALUE) {
+                        codes.set(i, "li $a0, " + (num + 1));
+                        codes.set(i + 1, nxt.replace("sle", "slt"));
+                    } else if (nxt.startsWith("sge ") && nxt.split(" ")[2].equals("$a0,") && num < Integer.MAX_VALUE) {
+                        codes.set(i, "li $a0, " + (num + 1));
+                        String[] tokens = nxt.split(" ");
+                        String x = "slt " + tokens[1] + " " + tokens[3] + ", " + tokens[2].split(",")[0];
+                        codes.set(i + 1, x);
+                    } else if (nxt.startsWith("sle ") && nxt.split(" ")[2].equals("$a0,") && num > Integer.MIN_VALUE) {
+                        codes.set(i, "li $a0, " + (num - 1));
+                        String[] tokens = nxt.split(" ");
+                        String x = "sgt " + tokens[1] + " " + tokens[3] + ", " + tokens[2].split(",")[0];
+                        codes.set(i + 1, x);
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            String cur = codes.get(i);
+            int k = i - 1;
+            while (k >= 0 && (codes.get(k).startsWith("#") || codes.get(k).startsWith("\n"))) --k;
+            if (k >= 0 && codes.get(k).equals("syscall")) continue;
+            if (cur.startsWith("move ") && cur.endsWith("$v0")) {
+                int j = i + 1;
+                while (j < codes.size() && (codes.get(j).startsWith("#") || codes.get(j).startsWith("\n"))) ++j;
+                if (j < codes.size()) {
+                    String nxt = codes.get(j);
+                    String[] tokens = nxt.split(" ");
+                    if (tokens.length == 4 && tokens[3].equals(cur.split(" ")[1].split(",")[0])) {
+                        String x = tokens[0] + " " + tokens[1] + " " + tokens[2] + " $v0";
+                        codes.set(j, x);
+                        codes.remove(i);
+                        --i;
+                    } else if (tokens.length == 4 && tokens[2].equals(cur.split(" ")[1])) {
+                        String x = tokens[0] + " " + tokens[1] + " $v0, " + tokens[3];
+                        codes.set(j, x);
+                        codes.remove(i);
+                        --i;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 1 < codes.size()) {
+                String cur = codes.get(i);
+                String nxt = codes.get(i + 1);
+                if (cur.startsWith("move $v0, ") && nxt.equals("move $a1, $v0")) {
+                    codes.set(i, "move $a1, " + cur.split(" ")[2]);
+                    codes.remove(i + 1);
+                    --i;
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 4 < codes.size() && codes.get(i).startsWith("move $a1")) {
+                if (codes.get(i + 3).startsWith("div_") && codes.get(i + 4).startsWith("sra") && codes.get(i + 4).split(" ")[1].split(",")[0].equals(codes.get(i).split(" ")[2])) {
+                    for (int j = i; j <= i + 4; ++j) {
+                        codes.set(j, codes.get(j).replace("$a1", codes.get(i).split(" ")[2]));
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            if (i + 5 < codes.size() && codes.get(i).startsWith("lw ")) {
+                if (codes.get(i + 4).startsWith("div_") && codes.get(i + 5).startsWith("sra ") && codes.get(i + 5).split(" ")[1].equals(codes.get(i).split(" ")[1])) {
+                    // System.out.println(codes.get(i + 5));
+                    for (int j = i; j <= i + 5; ++j) {
+                        codes.set(j, codes.get(j).replace("$a1,", codes.get(i).split(" ")[1]));
+                    }
+                }
             }
         }
     }

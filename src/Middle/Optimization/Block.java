@@ -25,6 +25,8 @@ public class Block {
     private HashSet<Meta> arriveIn = new HashSet<>();
     private HashSet<Meta> arriveOut = new HashSet<>();
 
+    public final boolean hasCall;
+
     private final int id;
     private final String func;
 
@@ -34,6 +36,7 @@ public class Block {
         this.codes = codes;
         this.id = id;
         this.func = func;
+        this.hasCall = codes.stream().anyMatch(x -> x.getInstr() == Code.Op.CALL);
     }
 
     public ArrayList<Code> getCodes() {

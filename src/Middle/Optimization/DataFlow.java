@@ -21,6 +21,8 @@ public class DataFlow {
     private final HashSet<Integer> vis = new HashSet<>();
     private String curFun = null;
 
+    public static OptimizeLoop optimizeLoop;
+
     private final ArrayList<Code> global = new ArrayList<>();
     public static HashSet<Op> divider = new HashSet<Op>() {{
         // add(Op.LABEL);
@@ -462,5 +464,26 @@ public class DataFlow {
         int cid = getCodeId(fun, codeId);
         int bid = getBlockId(fun, codeId);
         return func2blocks.get(fun).get(bid).calcCodeActiveOut().get(cid).stream().map(Block.Meta::getSymbol).collect(Collectors.toCollection(HashSet::new));
+    }
+
+    public static boolean mayThroughCall(String fun, Integer codeId) {
+        int bid = getBlockId(fun, codeId);
+        ArrayList<Block> blocks = func2blocks.get(fun);
+        boolean x = dfs(blocks, bid, new HashMap<Integer, Boolean>(), bid);
+        int cid = getCodeId(fun, codeId);
+        for (int i = 0; i < cid; ++i) {
+            if (blocks.get(bid).getCodes().get(i).getInstr() == Op.CALL) return true;
+        }
+        return x;
+    }
+
+    static boolean dfs(ArrayList<Block> bks, int cur, HashMap<Integer, Boolean> vis, int tag) {
+        HashSet<Integer> passed = bks.get(cur).getPre();
+        for (int i : passed) {
+            if (vis.getOrDefault(i, false)) continue;
+            vis.put(i, true);
+            if ((bks.get(i).hasCall && i != tag) || dfs(bks, i, vis, tag)) return true;
+        }
+        return false;
     }
 }

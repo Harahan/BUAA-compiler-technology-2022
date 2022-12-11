@@ -16,12 +16,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MipsGenerator {
+    public static final Pattern valPattern = Pattern.compile(".*\\[(.*)]");
+
+    public static ArrayList<String> mipsCodeList = new ArrayList<>();
+    private final ArrayList<ArrayList<Code>> funcList = new ArrayList<>();
+    private ArrayList<Code> mainList = new ArrayList<>();
+    private final HashMap<Symbol, Integer> globalArrAddr = new HashMap<>();
     public static HashMap<String, Boolean> optimize = new HashMap<String, Boolean>() {{
         put("MulDiv", true);
         put("DeleteDeadCode", true);
         put("PeepHole", true);
         put("BroadcastCode", true); // const and val both
-        put("TmpRegisterAlloc", true);
+        put("CountVal", true);
         put("MidCodeOptimize", true);
         put("JumpOptimize", true);
         put("RemoveRedundantCall", true);
@@ -30,27 +36,22 @@ public class MipsGenerator {
         put("GlobalPositionOptimize", false); // may be a negative effect
     }};
 
-    public static ArrayList<String> mipsCodeList = new ArrayList<>();
-    private final ArrayList<ArrayList<Code>> funcList = new ArrayList<>();
-    private ArrayList<Code> mainList = new ArrayList<>();
-    private final HashMap<Symbol, Integer> globalArrAddr = new HashMap<>();
-    public static HashMap<String, Integer> tmpVal2Used = new HashMap<>();
-
     public static final Pattern tempPattern = Pattern.compile(".*\\(T(\\d+)\\).*");
+    public static HashMap<Symbol, Integer> val2Used = new HashMap<>();
 
     public static RegAlloc ra;
 
     public MipsGenerator(ArrayList<Code> codes) {
         // System.out.println(codes);
 
-        if (optimize.get("TmpRegisterAlloc")) {
+        if (optimize.get("CountVal")) {
             for (Code code : codes) {
-                String ord1 = hasTmp(code.getOrd1());
-                String ord2 = hasTmp(code.getOrd2());
-                String res = hasTmp(code.getRes());
-                if (ord1 != null) tmpVal2Used.merge(ord1, 1, Integer::sum);
-                if (ord2 != null) tmpVal2Used.merge(ord2, 1, Integer::sum);
-                if (res != null) tmpVal2Used.merge(res, 1, Integer::sum);
+                Symbol o1 = hasTmp(code.getOrd1());
+                Symbol o2 = hasTmp(code.getOrd2());
+                Symbol r = hasTmp(code.getRes());
+                if (o1 != null) val2Used.merge(o1, 1, Integer::sum);
+                if (o2 != null) val2Used.merge(o2, 1, Integer::sum);
+                if (r != null) val2Used.merge(r, 1, Integer::sum);
             }
         }
         for (int i = 0; i < codes.size(); ++i) {
@@ -60,12 +61,15 @@ public class MipsGenerator {
                 while (codes.get(i).getInstr() != Code.Op.FUNC_END) func.add(codes.get(i++));
                 func.add(codes.get(i));
                 if (name.startsWith("main")) mainList = func;
-                else  funcList.add(func);
+                else funcList.add(func);
             }
         }
         setOff(Visitor.global, 0);
         translate();
-        if (optimize.get("PeepHole")) PeepHole.peepHole(mipsCodeList);
+        if (optimize.get("PeepHole")) {
+            PeepHole.peepHole(mipsCodeList);
+            PeepHole.peepHole(mipsCodeList);
+        }
     }
 
     // ------------------------------------- PREPARE ------------------------------------------------------------
@@ -74,10 +78,10 @@ public class MipsGenerator {
         return sym.getName() + "_" + sym.getBlockLevel() + "_" + sym.getBlockNum();
     }
 
-    public static String hasTmp(String var) {
+    public static Symbol hasTmp(String var) {
         Matcher matcher = tempPattern.matcher(var);
         if (matcher.matches()) {
-            return "(T" + matcher.group(1) + ")";
+            return Visitor.str2Symbol.get("(T" + matcher.group(1) + ")");
         }
         return null;
     }
@@ -87,8 +91,8 @@ public class MipsGenerator {
     // off为数字
     // gp: - sp: +
     public static void pushBackOrLoadFromMem(String reg, Symbol sym, Integer off, Instruction.LS.Op op) {
-        if (optimize.get("TmpRegisterAlloc")) {
-            if (sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0 && op == Instruction.LS.Op.sw) {
+        if (optimize.get("CountVal")) {
+            if (val2Used.containsKey(sym) && val2Used.get(sym) == 0 && op == Instruction.LS.Op.sw && !ra.inGraph(sym)) {
                 ra.refreshOne(reg);
                 return;
             }
@@ -191,6 +195,7 @@ public class MipsGenerator {
 
         //  reg --> lVal
         if (rVal.startsWith("$")) {
+            assert symbolLVal != null;
             if (symbolLVal.getDim() == 0) {
                 String resReg = ra.find(symbolLVal);
                 if (resReg == null) resReg = ra.alloc(symbolLVal, false, null, true);
@@ -431,8 +436,12 @@ public class MipsGenerator {
                         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, 0)));
                     } else {
                         String x = ra.find(symbolVal);
-                        if (x == null) {
+                        if (x == null && !symbolVal.equals(symbolRes)) {
                             x = ra.alloc(symbolVal, true, regRes, true);
+                            pushBackOrLoadFromMem(x, symbolVal, 0, Instruction.LS.Op.lw);
+                        } else if (x == null) {
+                            x = regRes;
+                            ra.map(x, symbolVal);
                             pushBackOrLoadFromMem(x, symbolVal, 0, Instruction.LS.Op.lw);
                         }
                         if (num == -1) {
@@ -456,8 +465,12 @@ public class MipsGenerator {
             if ((op == Code.Op.DIV || op == Code.Op.MOD) && symbolOrd2 == null && optimize.get("MulDiv")) {
                 int d = Integer.parseInt(ord2);
                 String x = ra.find(symbolOrd1);
-                if (x == null) {
+                if (x == null && !symbolOrd1.equals(symbolRes)) {
                     x = ra.alloc(symbolOrd1, true, regRes, true);
+                    pushBackOrLoadFromMem(x, symbolOrd1, 0, Instruction.LS.Op.lw);
+                } else if (x == null) {
+                    x = regRes;
+                    ra.map(x, symbolOrd1);
                     pushBackOrLoadFromMem(x, symbolOrd1, 0, Instruction.LS.Op.lw);
                 }
                 if (x.equals(regRes)) {
@@ -475,8 +488,12 @@ public class MipsGenerator {
             // ord1
             if (symbolOrd1 != null) {
                 regOrd1 = ra.find(symbolOrd1);
-                if (regOrd1 == null) {
+                if (regOrd1 == null && !symbolOrd1.equals(symbolRes)) {
                     regOrd1 = ra.alloc(symbolOrd1, true, null, true);
+                    pushBackOrLoadFromMem(regOrd1, symbolOrd1, 0, Instruction.LS.Op.lw);
+                } else if (regOrd1 == null) {
+                    regOrd1 = regRes;
+                    ra.map(regOrd1, symbolOrd1);
                     pushBackOrLoadFromMem(regOrd1, symbolOrd1, 0, Instruction.LS.Op.lw);
                 }
             } else if (!ord1.equals("0")) {
@@ -493,8 +510,12 @@ public class MipsGenerator {
             /*冲突*/
             if (symbolOrd2 != null) {
                 regOrd2 = ra.find(symbolOrd2);
-                if (regOrd2 == null) {
+                if (regOrd2 == null && !symbolOrd2.equals(symbolRes)) {
                     regOrd2 = ra.alloc(symbolOrd2, true, regOrd1, true);
+                    pushBackOrLoadFromMem(regOrd2, symbolOrd2, 0, Instruction.LS.Op.lw);
+                } else if (regOrd2 == null) {
+                    regOrd2 = regRes;
+                    ra.map(regOrd2, symbolOrd2);
                     pushBackOrLoadFromMem(regOrd2, symbolOrd2, 0, Instruction.LS.Op.lw);
                 }
             } else if (op != Code.Op.NOT && !ord2.equals("0")) { // !!!
@@ -562,7 +583,7 @@ public class MipsGenerator {
                         mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, regRes, reg, num)));
                         break;
                     case SUB:
-                        mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.subiu, regRes, reg, num)));
+                        mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, regRes, reg, -num)));
                         break;
                 }
             }
@@ -584,18 +605,23 @@ public class MipsGenerator {
                 reg = ra.alloc(paramSymbol, true, null, true);
                 pushBackOrLoadFromMem(reg, paramSymbol, 0, Instruction.LS.Op.lw);
             } else if (reg == null) {
-                reg = "$a0";
-                mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, reg, Integer.valueOf(param))));
+                if (Integer.valueOf(param) != 0) {
+                    reg = "$a0";
+                    mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, reg, Integer.valueOf(param))));
+                } else reg = "$zero";
             }
         } else {
             reg = "$a1";
             Matcher m = Code.indexPattern.matcher(param);
             String strOff = null;
             if (m.matches()) strOff = m.group(1);
-            if (strOff != null) {
+            if (strOff != null && "-0123456789".indexOf(strOff.charAt(0)) == -1) {
                 loadLVal("$a1", strOff);
                 mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.sll, "$a1", "$a1", 2)));
-            } else mipsCodeList.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, "$a1", "$zero")));
+            } else {
+                assert strOff != null;
+                mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$a1", Integer.parseInt(strOff) * 4)));
+            }
             int blockLevel = paramSymbol.getBlockLevel();
             /* 如果是该函数形参 ！！！*/
             if (paramSymbol instanceof FuncFormParam) {
@@ -624,24 +650,24 @@ public class MipsGenerator {
      */
     public void saveRegs(Integer codeId, String func, HashMap<String, Symbol> used) {
         HashSet<Symbol> activeOut;
-        if (!optimize.get("TmpRegisterAlloc")) activeOut = null;
+        if (!optimize.get("CountVal")) activeOut = null;
         else activeOut = DataFlow.getAco(func, codeId);
         for (String reg : used.keySet()) {
             // 如果是形参且为地址那么不用回写，因为一定为常数，否则会将地址写到地址处
             Symbol sym = ra.regMap.get(reg);
             if (sym.getBlockLevel() != 0 && (activeOut == null || activeOut.contains(sym))) {
                 if (!(sym instanceof FuncFormParam) || sym.getDim() == 0) {
-                    if (!optimize.get("TmpRegisterAlloc") || !(sym instanceof Tmp && tmpVal2Used.get(sym.getName()) == 0)) {
-                        if (ra.isDirty(reg)) ra.saveToMem(reg);
+                    if (!optimize.get("CountVal") || !(val2Used.containsKey(sym) && val2Used.get(sym) == 0 && !ra.inGraph(sym))) {
+                        if (ra.isDirty(reg) || ra.inGraph(reg)) ra.saveToMem(reg);
                     }
                 }
             }
         }
     }
 
-    public void returnFromFunc(String val, int funSize, boolean lw) {
+    public void returnFromFunc(String val, int funSize, boolean lw, boolean recover) {
         if (val != null && !val.equals("(EMPTY)")) loadLVal("$v0", val);
-        if (lw)
+        if (lw && recover)
             mipsCodeList.add(String.valueOf(new Instruction.LS(Instruction.LS.Op.lw, "$ra", null, funSize + 31 * 4, "$sp")));
         mipsCodeList.add(String.valueOf(new Instruction.M(Instruction.M.Op.jr, "$ra")));
     }
@@ -704,7 +730,6 @@ public class MipsGenerator {
     public void translateFunc(ArrayList<Code> funCodeList) {
         Func func = (Func) funCodeList.get(0).getSymbolOrd1();
         ra = new RegAlloc(func.getNickname());
-        mipsCodeList.add("\n");
         mipsCodeList.add(getName(func) + ":");
 
         if (func.getName().startsWith("main"))
@@ -729,13 +754,14 @@ public class MipsGenerator {
                 if (rid != -1) {
                     String reg = RegAlloc.Regs[rid];
                     pushBackOrLoadFromMem(reg, s, 0, Instruction.LS.Op.lw);
+                    ra.find(s); // 手动建立映射
                 }
             }
         }
 
         for (int i = 1; i < funCodeList.size(); ++i) {
-
-            mipsCodeList.add("\n#" + funCodeList.get(i));
+            mipsCodeList.add("\n");
+            mipsCodeList.add("#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
             Code.Op op = code.getInstr();
             String ord1 = code.getOrd1(), ord2 = code.getOrd2(), res = code.getRes();
@@ -744,11 +770,11 @@ public class MipsGenerator {
                 saveRegs(i, func.getNickname(), ra.clkGetAllUsed());
 
             // 标记临时变量的使用次数
-            String o1 = hasTmp(ord1), o2 = hasTmp(ord2), r = hasTmp(res);
-            if (optimize.get("TmpRegisterAlloc")) {
-                if (o1 != null) tmpVal2Used.merge(o1, -1, Integer::sum);
-                if (o2 != null) tmpVal2Used.merge(o2, -1, Integer::sum);
-                if (r != null) tmpVal2Used.merge(r, -1, Integer::sum);
+            Symbol o1 = hasTmp(ord1), o2 = hasTmp(ord2), r = hasTmp(res);
+            if (optimize.get("CountVal")) {
+                if (o1 != null) val2Used.merge(o1, -1, Integer::sum);
+                if (o2 != null) val2Used.merge(o2, -1, Integer::sum);
+                if (r != null) val2Used.merge(r, -1, Integer::sum);
             }
 
             // def: arr_def 和 end_arr_def 直接跳过即可
@@ -779,14 +805,18 @@ public class MipsGenerator {
                 }
             } else if (Code.func.contains(op)) {
                 if (op == Code.Op.PREPARE_CALL) {
-                     mipsCodeList.add("\n");
                     callFunc.push((Func) code.getSymbolOrd1());
                 } else if (op == Code.Op.PUSH_PAR_INT) {
-                    //ColorAlloc ca = callFunc.lastElement().ca;
-                    //ArrayList<Symbol> symbols = new ArrayList<Symbol>(callFunc.lastElement().getFuncTable().getOrderSymbols().subList(0, callFunc.lastElement().getNum())); // 形参
-                    //boolean k = false;
-                    //Symbol s = symbols.get(paraNum);
-                    //if (ca.mp.containsKey(s) && ca.regAlloc[ca.mp.get(s)] != -1) k = true;
+                    //ColorAlloc oca = callFunc.lastElement().ca;
+                    //ArrayList<Symbol> oSymbols = new ArrayList<Symbol>(callFunc.lastElement().getFuncTable().getOrderSymbols().subList(0, callFunc.lastElement().getNum())); // 形参
+                    //int k = 0, tag = 0;
+                    //for (int j = 0; j < oSymbols.size(); ++j) {
+                    //   Symbol s = oSymbols.get(j);
+                    //   if (oca.mp.containsKey(s) && oca.regAlloc[oca.mp.get(s)] != -1) {
+                    //        ++k;
+                    //        tag = j;
+                    //    }
+                    //}
                     //if (!k) pushIntoStack(paraNum++, ord1, code.getSymbolOrd1(), false, callFunc.lastElement().getFuncTable().totSize);
                     //else {
                     //    paraNum++;
@@ -801,13 +831,26 @@ public class MipsGenerator {
                     if (func.getName().startsWith("main")) {
                         mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$v0", 10)));
                         mipsCodeList.add(String.valueOf(new Instruction.NP(Instruction.NP.Op.syscall)));
-                    } else returnFromFunc(ord1, func.getFuncTable().totSize, func.callOtherFunc);
+                    } else
+                        returnFromFunc(ord1, func.getFuncTable().totSize, func.callOtherFunc, DataFlow.mayThroughCall(func.getNickname(), i));
                 } else if (op == Code.Op.CALL) {
                     paraNum = 0;
+                    HashSet<Symbol> aco = DataFlow.getAco(func.getNickname(), i);
+
+                    // 恢复参数
+                    HashMap<String, Symbol> used = ra.getAllUsed();
+                    for (Symbol s : symbols) {
+                        if (ca.mp.containsKey(s)) {
+                            int rid = ca.regAlloc[ca.mp.get(s)];
+                            if (rid != -1) {
+                                String reg = RegAlloc.Regs[rid];
+                                if (used.containsKey(reg) && aco.contains(s)) ra.find(s);
+                            }
+                        }
+                    }
 
                     // 获取要恢复的寄存器
                     HashMap<Symbol, Boolean> t = ra.getGraphVar();
-                    HashSet<Symbol> aco = DataFlow.getAco(func.getNickname(), i);
                     HashMap<Symbol, Boolean> recover = new HashMap<>();
                     for (Symbol s : aco) {
                         if (t.containsKey(s)) recover.put(s, t.get(s));
@@ -828,7 +871,6 @@ public class MipsGenerator {
                         pushBackOrLoadFromMem(reg, s, 0, Instruction.LS.Op.lw);
                     }
 
-                    mipsCodeList.add("\n");
                     callFunc.pop();
                     //toRegParaNum = 0;
                     //toRegPara.clear();
@@ -845,16 +887,16 @@ public class MipsGenerator {
                     mipsCodeList.add(String.valueOf(new Instruction.ML(op == Code.Op.EQZ_JUMP ? Instruction.ML.Op.beqz : Instruction.ML.Op.bnez, reg, res.substring(1, res.length() - 1))));
                 } else if (op == Code.Op.LABEL) mipsCodeList.add(ord1.substring(1, ord1.length() - 1) + ":");
             }
-            if (optimize.get("TmpRegisterAlloc")) {
-                if (o1 != null && tmpVal2Used.get(o1) == 0) {
+            if (optimize.get("CountVal")) {
+                if (o1 != null && val2Used.get(o1) == 0 && !ra.inGraph(code.getSymbolOrd1())) {
                     String reg = ra.find(code.getSymbolOrd1());
                     if (reg != null) ra.refreshOne(reg);
                 }
-                if (o2 != null && tmpVal2Used.get(o2) == 0) {
+                if (o2 != null && val2Used.get(o2) == 0 && !ra.inGraph(code.getSymbolOrd2())) {
                     String reg = ra.find(code.getSymbolOrd2());
                     if (reg != null) ra.refreshOne(reg);
                 }
-                if (r != null && tmpVal2Used.get(r) == 0) {
+                if (r != null && val2Used.get(r) == 0 && !ra.inGraph(code.getSymbolRes())) {
                     String reg = ra.find(code.getSymbolRes());
                     if (reg != null) ra.refreshOne(reg);
                 }

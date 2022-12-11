@@ -135,24 +135,19 @@ public class ColorAlloc {
     }
 
     public void alloc() {
-        // color: 1, 2, 3 ...
-        int[] colors = color(deduce()); // 0: tot amount of color, 1: color1, 2: color2, ...
-        int[] colorSum = new int[colors[0] + 1]; // 0 is the number of colors
-
-        for (int c : colors) ++colorSum[c]; // 统计每种颜色对应变量的数量
+        int[] colors = color(deduce());
+        int[] colorSum = new int[colors[0] + 1];
+        for (int c : colors) ++colorSum[c];
         --colorSum[colors[0]];
-
         List<Integer> order = new ArrayList<>();
         for (int i = 1; i < colorSum.length; ++i) order.add(i);
-        order.sort((x, y) -> Integer.compare(colorSum[y], colorSum[x])); // order[i] = j 表示颜色j对应变量数量排名第i
-        for (int i = 0; i < order.size(); ++i) colorSum[order.get(i)] = i; // colorSum[i] = j 表示颜色i对应变量数量排名第j
-        // 排名从0开始，排名数值越小，对应变量数量越多
+        order.sort((x, y) -> Integer.compare(colorSum[y], colorSum[x]));
+        for (int i = 0; i < order.size(); ++i) colorSum[order.get(i)] = i;
         regAlloc = new int[colors.length];
         for (int i = 1; i < colors.length; ++i) {
-            regAlloc[i] = colorSum[colors[i]]; // regAlloc[i] = j 表示变量i对应的寄存器编号为j
-            if (regAlloc[i] >= RegAlloc.Regs.length - 2) regAlloc[i] = -1; // 留出两个寄存器
+            regAlloc[i] = colorSum[colors[i]];
+            if (regAlloc[i] >= RegAlloc.Regs.length - 2) regAlloc[i] = -1;
         }
-        // print() regAlloc
         System.out.println("regAlloc: " + name);
         for (int i = 1; i < regAlloc.length; ++i) {
             if (regAlloc[i] != -1) {
@@ -163,4 +158,5 @@ public class ColorAlloc {
     }
 
     // public HashMap<Symbol, Integer> param = new HashMap<Symbol, Integer>();
+
 }
