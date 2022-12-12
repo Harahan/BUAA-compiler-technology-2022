@@ -29,7 +29,7 @@ SEMICN ;
 INTTK int
 IDENFR size
 ASSIGN =
-INTCON 25
+INTCON 50
 <Number>
 <PrimaryExp>
 <UnaryExp>
@@ -142,6 +142,106 @@ IDENFR i24
 COMMA ,
 INTTK int
 IDENFR i25
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i26
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i27
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i28
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i29
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i30
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i31
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i32
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i33
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i34
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i35
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i36
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i37
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i38
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i39
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i40
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i41
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i42
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i43
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i44
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i45
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i46
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i47
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i48
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i49
+<FuncFParam>
+COMMA ,
+INTTK int
+IDENFR i50
 <FuncFParam>
 <FuncFParams>
 RPARENT )
@@ -424,8 +524,8 @@ IDENFR i16
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
-MOD %
-INTCON 10
+DIV /
+INTCON 2
 <Number>
 <PrimaryExp>
 <UnaryExp>
@@ -478,7 +578,7 @@ IDENFR i19
 <PrimaryExp>
 <UnaryExp>
 <MulExp>
-MOD %
+DIV /
 INTCON 2
 <Number>
 <PrimaryExp>
@@ -582,6 +682,456 @@ IDENFR i25
 <LVal>
 ASSIGN =
 IDENFR i25
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i26
+<LVal>
+ASSIGN =
+IDENFR i26
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i27
+<LVal>
+ASSIGN =
+IDENFR i27
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i28
+<LVal>
+ASSIGN =
+IDENFR i28
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i29
+<LVal>
+ASSIGN =
+IDENFR i29
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i30
+<LVal>
+ASSIGN =
+IDENFR i30
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i31
+<LVal>
+ASSIGN =
+IDENFR i31
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i32
+<LVal>
+ASSIGN =
+IDENFR i32
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i33
+<LVal>
+ASSIGN =
+IDENFR i33
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i34
+<LVal>
+ASSIGN =
+IDENFR i34
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i35
+<LVal>
+ASSIGN =
+IDENFR i35
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i36
+<LVal>
+ASSIGN =
+IDENFR i36
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i37
+<LVal>
+ASSIGN =
+IDENFR i37
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i38
+<LVal>
+ASSIGN =
+IDENFR i38
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i39
+<LVal>
+ASSIGN =
+IDENFR i39
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i40
+<LVal>
+ASSIGN =
+IDENFR i40
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i41
+<LVal>
+ASSIGN =
+IDENFR i41
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i42
+<LVal>
+ASSIGN =
+IDENFR i42
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i43
+<LVal>
+ASSIGN =
+IDENFR i43
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i44
+<LVal>
+ASSIGN =
+IDENFR i44
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i45
+<LVal>
+ASSIGN =
+IDENFR i45
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i46
+<LVal>
+ASSIGN =
+IDENFR i46
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i47
+<LVal>
+ASSIGN =
+IDENFR i47
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i48
+<LVal>
+ASSIGN =
+IDENFR i48
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i49
+<LVal>
+ASSIGN =
+IDENFR i49
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+DIV /
+INTCON 2
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+IDENFR i50
+<LVal>
+ASSIGN =
+IDENFR i50
 <LVal>
 <PrimaryExp>
 <UnaryExp>
@@ -598,201 +1148,9 @@ SEMICN ;
 <Stmt>
 PRINTFTK printf
 LPARENT (
-STRCON "i1=%d,i2=%d,i3=%d,i4=%d,i5=%d,i6=%d,i7=%d,i8=%d,i9=%d,i10=%d,i11=%d,i12=%d,i13=%d,i14=%d,i15=%d,i16=%d,i17=%d,i18=%d,i19=%d,i20=%d,i21=%d,i22=%d,i23=%d,i24=%d,i25=%d\n"
+STRCON "i50: %d\n"
 COMMA ,
-IDENFR i1
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i2
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i3
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i4
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i5
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i6
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i7
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i8
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i9
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i10
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i11
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i12
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i13
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i14
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i15
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i16
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i17
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i18
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i19
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i20
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i21
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i22
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i23
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i24
-<LVal>
-<PrimaryExp>
-<UnaryExp>
-<MulExp>
-<AddExp>
-<Exp>
-COMMA ,
-IDENFR i25
+IDENFR i50
 <LVal>
 <PrimaryExp>
 <UnaryExp>
@@ -977,6 +1335,181 @@ IDENFR i25
 <UnaryExp>
 <MulExp>
 <AddExp>
+PLUS +
+IDENFR i26
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i27
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i28
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i29
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i30
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i31
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i32
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i33
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i34
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i35
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i36
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i37
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i38
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i39
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i40
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i41
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i42
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i43
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i44
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i45
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i46
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i47
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i48
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i49
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+IDENFR i50
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
 <Exp>
 SEMICN ;
 <Stmt>
@@ -1124,6 +1657,356 @@ IDENFR tmp
 PLUS +
 IDENFR func
 LPARENT (
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
+IDENFR i
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+MULT *
+IDENFR multi
+<LVal>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+COMMA ,
 IDENFR i
 <LVal>
 <PrimaryExp>

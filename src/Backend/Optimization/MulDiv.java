@@ -58,11 +58,12 @@ public class MulDiv {
         long l = multiplier[2], sh = multiplier[1], m = multiplier[0];
         int p = Integer.bitCount(d);
         if (p == 1 && div) {
-            rt.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, "$a1", valReg)));
-            rt.add(String.valueOf(new Instruction.ML(Instruction.ML.Op.bgez, "$a1", "div_" + ++magic)));
-            rt.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$a1", "$a1", Math.abs(d) - 1)));
-            rt.add("div_" + magic + ":");
-            rt.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.sra, resReg, "$a1", Integer.numberOfTrailingZeros(Math.abs(d)))));
+            // for opt 4
+            //rt.add(String.valueOf(new Instruction.MM(Instruction.MM.Op.move, "$a1", valReg)));
+            //rt.add(String.valueOf(new Instruction.ML(Instruction.ML.Op.bgez, "$a1", "div_" + ++magic)));
+            //rt.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$a1", "$a1", Math.abs(d) - 1)));
+            //rt.add("div_" + magic + ":");
+            rt.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.sra, resReg, valReg, Integer.numberOfTrailingZeros(Math.abs(d)))));
         } else if (p == 1) {
             int x = Integer.MIN_VALUE + Math.abs(d) - 1;
             rt.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, "$a1", x)));

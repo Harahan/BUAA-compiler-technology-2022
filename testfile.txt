@@ -1,51 +1,61 @@
-/*#include<stdio.h>
-int getint() {
-    int x = 0, f = 1;
-    char ch = getchar();
-    while (ch < '0' || ch > '9') {
-        if (ch == '-') f = -1;
-        ch = getchar();
-    }
-    while (ch >= '0' && ch <= '9') {
-        x = x * 10 + ch - '0';
-        ch = getchar();
-    }
-    return x * f;
-}*/
-//gcc integer-divide-optimization.c sylib.c -include sylib.h -Wall -Wno-unused-result -o binary-integer-divide-optimization && time ./binary-integer-divide-optimization < integer-divide-optimization.in
 int loopCount = 0;
 int multi = 2;
-int size = 25;
+int size = 50;
 
-int func(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10, int i11, int i12, int i13, int i14, int i15, int i16, int i17, int i18, int i19, int i20, int i21, int i22, int i23, int i24, int i25)
+int func(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10, int i11, int i12, int i13, int i14, int i15, int i16, int i17, int i18, int i19, int i20, int i21, int i22, int i23, int i24, int i25, int i26, int i27, int i28, int i29, int i30, int i31, int i32, int i33, int i34, int i35, int i36, int i37, int i38, int i39, int i40, int i41, int i42, int i43, int i44, int i45, int i46, int i47, int i48, int i49, int i50)
 {
-  i1 = i1 /2;
-  i2 = i2 /2;
-  i3 = i3 /2;
-  i4 = i4 /2;
-  i5 = i5 /2;
-  i6 = i6 /2;
-  i7 = i7 /2;
-  i8 = i8 /2;
-  i9 = i9 /2;
-  i10 = i10 /2;
-  i11 = i11 /2;
-  i12 = i12 /2;
-  i13 = i13 /2;
-  i14 = i14 /2;
-  i15 = i15 /2;
-  i16 = i16 %10;
-  i17 = i17 /2;
-  i18 = i18 /2;
-  i19 = i19 %2;
-  i20 = i20 /2;
-  i21 = i21 /2;
-  i22 = i22 /2;
-  i23 = i23 /2;
-  i24 = i24 /2;
-  i25 = i25 /2;
-  printf("i1=%d,i2=%d,i3=%d,i4=%d,i5=%d,i6=%d,i7=%d,i8=%d,i9=%d,i10=%d,i11=%d,i12=%d,i13=%d,i14=%d,i15=%d,i16=%d,i17=%d,i18=%d,i19=%d,i20=%d,i21=%d,i22=%d,i23=%d,i24=%d,i25=%d\n", i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15, i16, i17, i18, i19, i20, i21, i22, i23, i24, i25);
-  return i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10 + i11 + i12 + i13 + i14 + i15 + i16 + i17 + i18 + i19 + i20 + i21 + i22 + i23 + i24 + i25;
+  i1 = i1 / 2;
+  i2 = i2 / 2;
+  i3 = i3 / 2;
+  i4 = i4 / 2;
+  i5 = i5 / 2;
+  i6 = i6 / 2;
+  i7 = i7 / 2;
+  i8 = i8 / 2;
+  i9 = i9 / 2;
+  i10 = i10 / 2;
+  i11 = i11 / 2;
+  i12 = i12 / 2;
+  i13 = i13 / 2;
+  i14 = i14 / 2;
+  i15 = i15 / 2;
+  i16 = i16 / 2;
+  i17 = i17 / 2;
+  i18 = i18 / 2;
+  i19 = i19 / 2;
+  i20 = i20 / 2;
+  i21 = i21 / 2;
+  i22 = i22 / 2;
+  i23 = i23 / 2;
+  i24 = i24 / 2;
+  i25 = i25 / 2;
+  i26 = i26 / 2;
+  i27 = i27 / 2;
+  i28 = i28 / 2;
+  i29 = i29 / 2;
+  i30 = i30 / 2;
+  i31 = i31 / 2;
+  i32 = i32 / 2;
+  i33 = i33 / 2;
+  i34 = i34 / 2;
+  i35 = i35 / 2;
+  i36 = i36 / 2;
+  i37 = i37 / 2;
+  i38 = i38 / 2;
+  i39 = i39 / 2;
+  i40 = i40 / 2;
+  i41 = i41 / 2;
+  i42 = i42 / 2;
+  i43 = i43 / 2;
+  i44 = i44 / 2;
+  i45 = i45 / 2;
+  i46 = i46 / 2;
+  i47 = i47 / 2;
+  i48 = i48 / 2;
+  i49 = i49 / 2;
+  i50 = i50 / 2;
+  printf("i50: %d\n", i50);
+  return i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10 + i11 + i12 + i13 + i14 + i15 + i16 + i17 + i18 + i19 + i20 + i21 + i22 + i23 + i24 + i25 + i26 + i27 + i28 + i29 + i30 + i31 + i32 + i33 + i34 + i35 + i36 + i37 + i38 + i39 + i40 + i41 + i42 + i43 + i44 + i45 + i46 + i47 + i48 + i49 + i50;
 }
 
 int main()
@@ -58,9 +68,10 @@ int main()
   {
     int tmp = 0;
     int j = 0;
-    while(j<1) {
-       printf("tmp=%d\n", tmp);
-      tmp = tmp + func(i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi) / size;
+    while(j < 1)
+    {
+        printf("tmp=%d\n", tmp);
+      tmp = tmp + func(i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi) / size;
       printf("%d, %d, %d\n", i, j, tmp);
       j = j + 1;
     }

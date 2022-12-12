@@ -43,7 +43,7 @@ public class Compiler {
             write(parser.toString(), "output.txt");
         } else {
             write(ErrorTable.printError(), "error.txt");
-            // return;
+            return;
         }
         DataFlow dataFlow = new DataFlow(MidCodeList.codes);
         write(MidCodeList.printMidCode(), "ir.txt");
@@ -55,6 +55,6 @@ public class Compiler {
         if (optimize.get("ExtractLoopConstExp")) dataFlow.extractLoopConstExp();
         MidCodeList.codes = dataFlow.getCodes();
         write(MidCodeList.printMidCode(), "ir_opt.txt");
-        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(true), "mips.txt");
+        write(new MipsGenerator(dataFlow.getCodes()).printMipsCode(false), "mips.txt");
     }
 }
