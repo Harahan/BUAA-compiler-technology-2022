@@ -559,24 +559,12 @@ public class MipsGenerator {
                         mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sgt, regRes, regOrd1, regOrd2)));
                         break;
                     case GE:
-                        // for opt 6
-                        if (!mipsCodeList.get(mipsCodeList.size() - 1).startsWith("li $a0")) {
-                            mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$a0", regOrd1, 1)));
-                            mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sgt, regRes, "$a0", regOrd2)));
-                            break;
-                        }
                         mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sge, regRes, regOrd1, regOrd2)));
                         break;
                     case LT:
                         mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.slt, regRes, regOrd1, regOrd2)));
                         break;
                     case LE:
-                        // for opt 6
-                        if (!mipsCodeList.get(mipsCodeList.size() - 1).startsWith("li $a0")) {
-                            mipsCodeList.add(String.valueOf(new Instruction.MMI(Instruction.MMI.Op.addiu, "$a0", regOrd2, 1)));
-                            mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.slt, regRes, regOrd1, "$a0")));
-                            break;
-                        }
                         mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sle, regRes, regOrd1, regOrd2)));
                         break;
                 }

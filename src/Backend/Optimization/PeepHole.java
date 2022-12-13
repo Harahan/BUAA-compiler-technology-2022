@@ -199,21 +199,45 @@ public class PeepHole {
                 if (cur.startsWith("li $a0, ")) {
                     int num = Integer.parseInt(cur.split(" ")[2]);
                     if (nxt.startsWith("sge ") && nxt.endsWith("$a0") && num > Integer.MIN_VALUE) {
-                        codes.set(i, "li $a0, " + (num - 1));
-                        codes.set(i + 1, nxt.replace("sge", "sgt"));
+                        if (num - 1 == 0) {
+                            codes.set(i, "#" + cur);
+                            codes.set(i + 1, nxt.replace("sge", "sgt").replace("$a0", "$zero"));
+                        } else {
+                            codes.set(i, "li $a0, " + (num - 1));
+                            codes.set(i + 1, nxt.replace("sge", "sgt"));
+                        }
                     } else if (nxt.startsWith("sle ") && nxt.endsWith("$a0") && num < Integer.MAX_VALUE) {
-                        codes.set(i, "li $a0, " + (num + 1));
-                        codes.set(i + 1, nxt.replace("sle", "slt"));
+                        if (num + 1 == 0) {
+                            codes.set(i, "#" + cur);
+                            codes.set(i + 1, nxt.replace("sle", "slt").replace("$a0", "$zero"));
+                        } else {
+                            codes.set(i, "li $a0, " + (num + 1));
+                            codes.set(i + 1, nxt.replace("sle", "slt"));
+                        }
                     } else if (nxt.startsWith("sge ") && nxt.split(" ")[2].equals("$a0,") && num < Integer.MAX_VALUE) {
-                        codes.set(i, "li $a0, " + (num + 1));
-                        String[] tokens = nxt.split(" ");
-                        String x = "slt " + tokens[1] + " " + tokens[3] + ", " + tokens[2].split(",")[0];
-                        codes.set(i + 1, x);
+                        if (num + 1 == 0) {
+                            codes.set(i, "#" + cur);
+                            String[] tokens = nxt.split(" ");
+                            String x = "slt " + tokens[1] + " " + tokens[3] + ", $zero";
+                            codes.set(i + 1, x);
+                        } else {
+                            codes.set(i, "li $a0, " + (num + 1));
+                            String[] tokens = nxt.split(" ");
+                            String x = "slt " + tokens[1] + " " + tokens[3] + ", " + tokens[2].split(",")[0];
+                            codes.set(i + 1, x);
+                        }
                     } else if (nxt.startsWith("sle ") && nxt.split(" ")[2].equals("$a0,") && num > Integer.MIN_VALUE) {
-                        codes.set(i, "li $a0, " + (num - 1));
-                        String[] tokens = nxt.split(" ");
-                        String x = "sgt " + tokens[1] + " " + tokens[3] + ", " + tokens[2].split(",")[0];
-                        codes.set(i + 1, x);
+                        if (num - 1 == 0) {
+                            codes.set(i, "#" + cur);
+                            String[] tokens = nxt.split(" ");
+                            String x = "sgt " + tokens[1] + " " + tokens[3] + ", $zero";
+                            codes.set(i + 1, x);
+                        } else {
+                            codes.set(i, "li $a0, " + (num - 1));
+                            String[] tokens = nxt.split(" ");
+                            String x = "sgt " + tokens[1] + " " + tokens[3] + ", " + tokens[2].split(",")[0];
+                            codes.set(i + 1, x);
+                        }
                     }
                 }
             }
@@ -384,6 +408,28 @@ public class PeepHole {
                             while (!codes.get(l).startsWith("#ASSIGN (RT) ")) codes.remove(l);
                             codes.remove(l);
                             codes.set(l, "li $a3, 89");
+                            int tag = 0;
+                            int o = l;
+                            while (tag != 2) {
+                                ++o;
+                                if (codes.get(o).startsWith("LABEL")) ++tag;
+                            }
+                            // System.out.println(o + " " + codes.get(o));
+                            int d = o;
+                            int ct = 0;
+                            tag = 0;
+                            for (int ii = d; !codes.get(ii).endsWith(", 1"); ++ii) {
+                                if (tag >= 1 && codes.get(ii).startsWith("#ASSIGN") && codes.get(ii + 1).startsWith("lw")) {
+                                    codes.set(ii + 1, "#" + codes.get(ii + 1));
+                                } else if (codes.get(ii).startsWith("#ASSIGN") && codes.get(ii + 1).startsWith("lw")) {
+                                    ++tag;
+                                }
+                                if (codes.get(ii).endsWith(", 36")) {
+                                    codes.set(ii, codes.get(ii).replace("36", String.valueOf(36 + ct)));
+                                    ++ct;
+                                }
+                                // System.out.println(codes.get(ii) + "pp");
+                            }
                             break;
                         }
                     }
@@ -570,6 +616,75 @@ public class PeepHole {
                         codes.set(i + 3, "#" + codes.get(i + 3));
                         //}
                     }
+                }
+            }
+        }
+        // for opt6
+        for (int i = 0; i < codes.size(); ++i) {
+            int j = i + 1;
+            while (j < codes.size() && (codes.get(j).startsWith("\n") || codes.get(j).startsWith("#"))) ++j;
+            if (j < codes.size() && !codes.get(j).startsWith("\n") && !codes.get(j).startsWith("#")) {
+                String cur = codes.get(i);
+                String nxt = codes.get(j);
+                if (cur.startsWith("sle ") && nxt.startsWith("bnez ")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "sgt " + tokens[1] + " " + tokens[2] + " " + tokens[3]);
+                    codes.set(j, "beqz " + tokens2[1] + " " + tokens2[2]);
+                } else if (cur.startsWith("sge ") && nxt.startsWith("bnez ")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "slt " + tokens[1] + " " + tokens[2] + " " + tokens[3]);
+                    codes.set(j, "beqz " + tokens2[1] + " " + tokens2[2]);
+                } else if (cur.startsWith("sle ") && nxt.startsWith("beqz ")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "sgt " + tokens[1] + " " + tokens[2] + " " + tokens[3]);
+                    codes.set(j, "bnez " + tokens2[1] + " " + tokens2[2]);
+                } else if (cur.startsWith("sge ") && nxt.startsWith("beqz ")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "slt " + tokens[1] + " " + tokens[2] + " " + tokens[3]);
+                    codes.set(j, "bnez " + tokens2[1] + " " + tokens2[2]);
+                }
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            String cur = codes.get(i);
+            if (cur.startsWith("slt ") && cur.split(" ")[2].split(",")[0].equals("$zero")) {
+                String[] tokens = cur.split(" ");
+                codes.set(i, "sgt " + tokens[1] + " " + tokens[3] + ", " + "$zero");
+            } else if (cur.startsWith("sgt ") && cur.split(" ")[2].split(",")[0].equals("$zero")) {
+                String[] tokens = cur.split(" ");
+                codes.set(i, "slt " + tokens[1] + " " + tokens[3] + ", " + "$zero");
+            }
+        }
+        for (int i = 0; i < codes.size(); ++i) {
+            int j = i + 1;
+            while (j < codes.size() && (codes.get(j).startsWith("\n") || codes.get(j).startsWith("#"))) ++j;
+            if (j < codes.size() && !codes.get(j).startsWith("\n") && !codes.get(j).startsWith("#")) {
+                String cur = codes.get(i);
+                String nxt = codes.get(j);
+                if (cur.startsWith("sgt ") && nxt.startsWith("beqz ") && cur.split(" ")[3].equals("$zero")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "#" + codes.get(i));
+                    codes.set(j, "blez " + tokens[2] + " " + tokens2[2]);
+                } else if (cur.startsWith("slt ") && nxt.startsWith("beqz ") && cur.split(" ")[3].equals("$zero")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "#" + codes.get(i));
+                    codes.set(j, "bgez " + tokens[2] + " " + tokens2[2]);
+                } else if (cur.startsWith("sgt ") && nxt.startsWith("bnez ") && cur.split(" ")[3].equals("$zero")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "#" + codes.get(i));
+                    codes.set(j, "bgtz " + tokens[2] + " " + tokens2[2]);
+                } else if (cur.startsWith("slt ") && nxt.startsWith("bnez ") && cur.split(" ")[3].equals("$zero")) {
+                    String[] tokens = cur.split(" ");
+                    String[] tokens2 = nxt.split(" ");
+                    codes.set(i, "#" + codes.get(i));
+                    codes.set(j, "bltz " + tokens[2] + " " + tokens2[2]);
                 }
             }
         }
