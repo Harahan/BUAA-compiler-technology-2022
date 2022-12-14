@@ -254,6 +254,9 @@ public class Block {
                         }
                     }
                     if (tag) flag = true;
+                } else if (code.getInstr() == Code.Op.ASSIGN && code.getOrd1().equals(code.getRes())) {
+                    res.remove(i--);
+                    flag = true;
                 }
             }
         }

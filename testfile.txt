@@ -1,41 +1,102 @@
-const int N = 10;
-int a[10] = {0,1,2,3,4,5,6,7,8,9};
-int fib(int i) {
-    if (i == 1) {
-        return 1;
-    }
-    if (i == 2) {
-        return 2;
-    }
-    return fib(i - 1) + fib(i - 2);
+//#include <stdio.h>
+/*int getint()
+{
+  int x = 0;
+  char c = getchar();
+  while (c < '0' || c > '9')
+    c = getchar();
+  while (c >= '0' && c <= '9')
+  {
+    x = x * 10 + c - '0';
+    c = getchar();
+  }
+  return x;
+}*/
+
+int loopCount = 0;
+int multi = 2;
+int size = 50;
+
+int func(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10, int i11, int i12, int i13, int i14, int i15, int i16, int i17, int i18, int i19, int i20, int i21, int i22, int i23, int i24, int i25, int i26, int i27, int i28, int i29, int i30, int i31, int i32, int i33, int i34, int i35, int i36, int i37, int i38, int i39, int i40, int i41, int i42, int i43, int i44, int i45, int i46, int i47, int i48, int i49, int i50)
+{
+  i1 = i1 / 2;
+  i2 = i2 / 2;
+  i3 = i3 / 2;
+  i4 = i4 / 2;
+  i5 = i5 / 2;
+  i6 = i6 / 2;
+  i7 = i7 / 2;
+  i8 = i8 / 2;
+  i9 = i9 / 2;
+  i10 = i10 / 2;
+  i11 = i11 / 2;
+  i12 = i12 / 2;
+  i13 = i13 / 2;
+  i14 = i14 / 2;
+  i15 = i15 / 2;
+  i16 = i16 / 2;
+  i17 = i17 / 2;
+  i18 = i18 / 2;
+  i19 = i19 / 2;
+  i20 = i20 / 2;
+  i21 = i21 / 2;
+  i22 = i22 / 2;
+  i23 = i23 / 2;
+  i24 = i24 / 2;
+  i25 = i25 / 2;
+  i26 = i26 / 2;
+  i27 = i27 / 2;
+  i28 = i28 / 2;
+  i29 = i29 / 2;
+  i30 = i30 / 2;
+  i31 = i31 / 2;
+  i32 = i32 / 2;
+  i33 = i33 / 2;
+  i34 = i34 / 2;
+  i35 = i35 / 2;
+  i36 = i36 / 2;
+  i37 = i37 / 2;
+  i38 = i38 / 2;
+  i39 = i39 / 2;
+  i40 = i40 / 2;
+  i41 = i41 / 2;
+  i42 = i42 / 2;
+  i43 = i43 / 2;
+  i44 = i44 / 2;
+  i45 = i45 / 2;
+  i46 = i46 / 2;
+  i47 = i47 / 2;
+  i48 = i48 / 2;
+  i49 = i49 / 2;
+  i50 = i50 / 2;
+  // printf("i50: %d\n", i50);
+  return i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10 + i11 + i12 + i13 + i14 + i15 + i16 + i17 + i18 + i19 + i20 + i21 + i22 + i23 + i24 + i25 + i26 + i27 + i28 + i29 + i30 + i31 + i32 + i33 + i34 + i35 + i36 + i37 + i38 + i39 + i40 + i41 + i42 + i43 + i44 + i45 + i46 + i47 + i48 + i49 + i50;
 }
+
 int main()
-{    
-    int i = 2,j = 5;
-    const int a1 = 1, a2 = 2;
-    i = getint();
-    j = getint();
-    i = (-(i * j) * fib(4) + 0 + a[1] * 1 - 1/2) * 5;
-    j = 7*5923%56*57 - fib(fib(5)+2) + (a1+a2-(89/2*36-53) /1*6-2*(45*56/85-56+35*56/4-9));
-    int k = +-+6;
-    while (i <= 100) {
-	a[0] = a[0] + k * k;
-	a[1] = a[1] + k * k;
-	a[2] = a[2] + k * k;
-	a[3] = a[3] + k * k;
-	a[4] = a[4] + k * k;
-	a[5] = a[5] + k * k;
-	a[6] = a[6] + k * k;
-	a[7] = a[7] + k * k;
-	a[8] = a[8] + k * k;
-	a[9] = a[9] + k * k;
-	i = i + 1;
+{
+  int sum = 0;
+  int i = 0;
+  loopCount = getint();
+  // starttime();
+  while(i<loopCount)
+  {
+    int tmp = 0;
+    int j = 0;
+    while(j < 1)
+    {
+        //printf("tmp=%d\n", tmp);
+      tmp = tmp + func(i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi, i*multi) / size;
+      //printf("%d, %d, %d\n", i, j, tmp);
+      j = j + 1;
     }
-    i = 0;
-    while (i < 10) {
-	printf("%d, ", a[i]);
-	i = i + 1;
-    }
-    printf("\n%d, %d, %d\n", i, j, k);
-    return 0;
+    tmp = tmp / 1;
+    sum = sum + tmp;
+    sum = sum % 2147385347;
+    i = i + 1;
+  }
+  // stoptime();
+  printf("%d\n", sum);
+  //putch(10);
+  return 0;
 }

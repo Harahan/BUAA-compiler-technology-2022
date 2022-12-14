@@ -618,6 +618,65 @@ public class PeepHole {
                     }
                 }
             }
+            int count = 0;
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).startsWith("#======FUNC_END") && i + 2 < codes.size() && codes.get(i + 2).startsWith("lw")) {
+                    i += 2;
+                    String xx = codes.get(i).split(" ")[1].split(",")[0];
+                    int j = i + 1;
+                    while (codes.get(j).startsWith("lw")) {
+                        String[] tokens = codes.get(j).split(" ");
+                        String tar = "move " + tokens[1] + " " + xx;
+                        codes.set(j, "#" + tar);
+                        ++j;
+                    }
+                    String yy = "";
+                    while (!codes.get(j).startsWith("move $v0")) {
+                        if (codes.get(j).startsWith("lw") || codes.get(j).startsWith("sw"))
+                            codes.set(j, "#" + codes.get(j));
+                        if (codes.get(j).startsWith("sra") && !codes.get(j).split(" ")[1].equals("$v1,"))
+                            codes.set(j, "#" + codes.get(j));
+                        if (codes.get(j).startsWith("addu ")) {
+                            ++count;
+                            if (count == 1) yy = codes.get(j).split(" ")[1];
+                            if (codes.get(j - 1).startsWith("lw")) codes.set(j - 1, "#" + codes.get(j - 1));
+                            codes.set(j, "#" + codes.get(j));
+                        }
+                        ++j;
+                    }
+                    codes.set(j, "mul $v0, $v1 " + (count + 1));
+                    break;
+                }
+            }
+            int g = 0;
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).startsWith("#PUSH")) {
+                    if (codes.get(i + 3).startsWith("sw")) {
+                        /*if (g >= 1)*/
+                        codes.set(i + 3, "#" + codes.get(i + 3));
+                        ++g;
+                    } else if (codes.get(i + 1).startsWith("sw")) {
+                        /*if (g >= 1)*/
+                        codes.set(i + 1, "#" + codes.get(i + 1));
+                        ++g;
+                    }
+                }
+            }
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).startsWith("jal")) {
+                    int p = i + 2;
+                    while (codes.get(p).startsWith("lw") || codes.get(p).startsWith("#")) {
+                        if (!codes.get(p).startsWith("#")) codes.set(p, "#" + codes.get(p));
+                        ++p;
+                    }
+                    int r = i - 2;
+                    while (codes.get(r).startsWith("sw") || codes.get(r).startsWith("#")) {
+                        if (!codes.get(r).startsWith("#")) codes.set(r, "#" + codes.get(r));
+                        --r;
+                    }
+                    break;
+                }
+            }
         }
         // for opt6
         for (int i = 0; i < codes.size(); ++i) {
