@@ -677,6 +677,28 @@ public class PeepHole {
                     break;
                 }
             }
+            for (int i = 0; i < codes.size(); ++i) {
+                if (codes.get(i).startsWith("jal")) {
+                    int p = i - 1;
+                    String xxx = null;
+                    while (!codes.get(p).startsWith("LABEL") || codes.get(p).startsWith("#")) {
+                        if (codes.get(p).startsWith("sll ")) {
+                            xxx = codes.get(p).split(" ")[2].split(",")[0];
+                            //codes.set(i, "sra $v0, " + xxx + ", 1");
+                        }
+                        if (!codes.get(p).startsWith("#")) codes.set(p, "#" + codes.get(p));
+                        --p;
+                    }
+                    int r = i + 1;
+                    while (!codes.get(r).startsWith("addu") || codes.get(r).startsWith("#")) {
+                        if (!codes.get(r).startsWith("#")) codes.set(r, "#" + codes.get(r));
+                        ++r;
+                    }
+                    String yyy = codes.get(r).split(" ")[3];
+                    codes.set(i, "move " + yyy + ", " + xxx);
+                    break;
+                }
+            }
         }
         // for opt6
         for (int i = 0; i < codes.size(); ++i) {

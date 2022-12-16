@@ -605,7 +605,7 @@ public class MipsGenerator {
                 reg = ra.alloc(paramSymbol, true, null, true);
                 pushBackOrLoadFromMem(reg, paramSymbol, 0, Instruction.LS.Op.lw);
             } else if (reg == null) {
-                if (Integer.valueOf(param) != 0) {
+                if (Integer.parseInt(param) != 0) {
                     reg = "$a0";
                     mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, reg, Integer.valueOf(param))));
                 } else reg = "$zero";
@@ -760,7 +760,6 @@ public class MipsGenerator {
         }
 
         for (int i = 1; i < funCodeList.size(); ++i) {
-
             mipsCodeList.add("\n");
             mipsCodeList.add("#" + funCodeList.get(i));
             Code code = funCodeList.get(i);
