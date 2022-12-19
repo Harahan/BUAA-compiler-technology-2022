@@ -418,15 +418,25 @@ public class PeepHole {
                             int d = o;
                             int ct = 0;
                             tag = 0;
+                            int tc = 0;
+                            String xxxx = "";
                             for (int ii = d; !codes.get(ii).endsWith(", 1"); ++ii) {
                                 if (tag >= 1 && codes.get(ii).startsWith("#ASSIGN") && codes.get(ii + 1).startsWith("lw")) {
                                     codes.set(ii + 1, "#" + codes.get(ii + 1));
                                 } else if (codes.get(ii).startsWith("#ASSIGN") && codes.get(ii + 1).startsWith("lw")) {
+                                    codes.set(ii + 1, "#" + codes.get(ii + 1));
                                     ++tag;
                                 }
                                 if (codes.get(ii).endsWith(", 36")) {
-                                    codes.set(ii, codes.get(ii).replace("36", String.valueOf(36 + ct)));
+                                    if (ct == 0) {
+                                        codes.set(ii, "addiu " + codes.get(ii).split(" ")[2] + " " + codes.get(ii).split(" ")[2] + " 36");
+                                        xxxx = codes.get(ii).split(" ")[2];
+                                    } else codes.set(ii, codes.get(ii).replace("36", String.valueOf(ct)));
                                     ++ct;
+                                }
+                                if (codes.get(ii).startsWith("sw") && tc == 0) {
+                                    tc = 1;
+                                    codes.set(ii, "sw " + xxxx + " " + codes.get(ii).split(" ")[2]);
                                 }
                                 // System.out.println(codes.get(ii) + "pp");
                             }
@@ -694,8 +704,17 @@ public class PeepHole {
                         if (!codes.get(r).startsWith("#")) codes.set(r, "#" + codes.get(r));
                         ++r;
                     }
-                    String yyy = codes.get(r).split(" ")[3];
-                    codes.set(i, "move " + yyy + ", " + xxx);
+                    String[] yyy = codes.get(r).split(" ");
+                    codes.set(i, "#" + codes.get(i));
+                    codes.set(r, yyy[0] + " " + yyy[1] + " " + yyy[2] + " " + xxx);
+                    for (; r < codes.size(); ++r) {
+                        if (codes.get(r).startsWith("#MOD")) {
+                            ++r;
+                            while (r < codes.size() && !(codes.get(r).startsWith("#") || codes.get(r).startsWith("\n")))
+                                codes.set(r, "#" + codes.get(r++));
+                            break;
+                        }
+                    }
                     break;
                 }
             }
