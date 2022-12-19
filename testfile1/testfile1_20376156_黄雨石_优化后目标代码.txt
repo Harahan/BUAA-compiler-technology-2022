@@ -1,0 +1,129 @@
+.data
+a_0_1: .word 0 1 2 3 4 5 6 7 8 9
+STR0: .asciiz ", "
+STR1: .asciiz "\n"
+STR2: .asciiz ", "
+STR3: .asciiz ", "
+STR4: .asciiz "\n"
+.text
+addiu $gp, $gp, 44
+li $a0, 10
+sw $a0, 0($gp)
+main_0_1:
+addiu $sp, $sp, -228
+li $v0, 5
+syscall
+move $t0, $v0
+li $v0, 5
+syscall
+move $a3, $v0
+mul $v1, $t0, $a3
+subu $t0, $zero, $v1
+li, $v0, 5
+mul $v1, $t0, $v0
+lw $t0, a_0_1+4($zero)
+addu $a3, $v1, $t0
+sll $t0, $a3, 0
+sll $a1, $a3, 2
+addu $t0, $t0, $a1
+li $a3, 89
+li $a0, 1197
+subu $v1, $a0, $a3
+addiu $a3, $v1, -10091
+LABEL6:
+slti $v1, $t0, 101
+beqz $v1, LABEL8
+LABEL7:
+addiu $a2, $a2, 36
+sw $a2, a_0_1+0($zero)
+addiu $v1, $a2, 1
+sw $v1, a_0_1+4($zero)
+addiu $v1, $a2, 2
+sw $v1, a_0_1+8($zero)
+addiu $v1, $a2, 3
+sw $v1, a_0_1+12($zero)
+addiu $v1, $a2, 4
+sw $v1, a_0_1+16($zero)
+addiu $v1, $a2, 5
+sw $v1, a_0_1+20($zero)
+addiu $v1, $a2, 6
+sw $v1, a_0_1+24($zero)
+addiu $v1, $a2, 7
+sw $v1, a_0_1+28($zero)
+addiu $v1, $a2, 8
+sw $v1, a_0_1+32($zero)
+addiu $v1, $a2, 9
+sw $v1, a_0_1+36($zero)
+addiu $t0, $t0, 1
+slti $v1, $t0, 101
+bnez $v1, LABEL7
+LABEL8:
+li $t0, 0
+LABEL11:
+LABEL12:
+sll $a1, $t0, 2
+lw $v1, a_0_1+0($a1)
+move $a0, $v1
+li $v0, 1
+syscall
+la $a0, STR0
+li $v0, 4
+syscall
+addiu $t0, $t0, 1
+slti $v1, $t0, 10
+bnez $v1, LABEL12
+LABEL13:
+la $a0, STR1
+li $v0, 4
+syscall
+move $a0, $t0
+li $v0, 1
+syscall
+la $a0, STR2
+li $v0, 4
+syscall
+move $a0, $a3
+li $v0, 1
+syscall
+la $a0, STR3
+li $v0, 4
+syscall
+li $a0, -6
+li $v0, 1
+syscall
+la $a0, STR4
+li $v0, 4
+syscall
+li $v0, 10
+syscall
+fib_0_1:
+sw $ra, 156($sp)
+lw $a2, 0($sp)
+li $a0, 1
+bne $a2, $a0, LABEL0
+li $v0, 1
+jr $ra
+LABEL0:
+li $a0, 2
+bne $a2, $a0, LABEL3
+li $v0, 2
+jr $ra
+LABEL3:
+addiu $v1, $a2, -1
+sw $v1, -160($sp)
+sw $a2, 0($sp)
+addiu $sp, $sp, -160
+jal fib_0_1
+addiu $sp, $sp, 160
+lw $a2, 0($sp)
+move $a3, $v0
+addiu $v1, $a2, -2
+sw $v1, -160($sp)
+sw $a3, 16($sp)
+addiu $sp, $sp, -160
+jal fib_0_1
+addiu $sp, $sp, 160
+lw $a3, 16($sp)
+addu $v0, $a3, $v0
+lw $ra, 156($sp)
+jr $ra
