@@ -43,7 +43,7 @@ public class Compiler {
             write(parser.toString(), "output.txt");
         } else {
             write(ErrorTable.printError(), "error.txt");
-            // return;
+            return;
         }
         DataFlow dataFlow = new DataFlow(MidCodeList.codes);
         write(MidCodeList.printMidCode(), "ir.txt");

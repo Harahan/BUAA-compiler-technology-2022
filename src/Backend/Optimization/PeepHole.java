@@ -246,7 +246,7 @@ public class PeepHole {
             if (i + 1 < codes.size()) {
                 String nxt = codes.get(i + 1);
                 String cur = codes.get(i);
-                if (cur.startsWith("li $a0, ")) {
+                if (cur.startsWith("li $a0, ") && Integer.parseInt(cur.split(" ")[2]) >= -32768 && Integer.parseInt(cur.split(" ")[2]) <= 32767) {
                     if (nxt.startsWith("slt ") && nxt.endsWith("$a0")) {
                         String[] tokens = cur.split(" ");
                         String[] tokens2 = nxt.split(" ");
