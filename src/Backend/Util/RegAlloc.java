@@ -74,7 +74,6 @@ public class RegAlloc {
             MipsGenerator.mipsCodeList.add("#" + clockRegs[ptr] + " <--- " + sym.getName());
             return clockRegs[ptr];
         }
-        /*
         ptr = nxt();
         while (ptr != x && (dirtyMap.get(clockRegs[ptr]) || clockRegs[ptr].equals(conflict))) ptr = nxt();
         if (!dirtyMap.get(clockRegs[ptr]) && !clockRegs[ptr].equals(conflict)) {
@@ -82,7 +81,6 @@ public class RegAlloc {
             MipsGenerator.mipsCodeList.add("#" + clockRegs[ptr] + " <--- " + sym.getName());
             return clockRegs[ptr];
         }
-         */
         return null;
     }
 
