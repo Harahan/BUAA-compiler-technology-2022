@@ -1,5 +1,6 @@
 # BUAA compiler technology 2022
 此仓库包括以下分支（每个分支均包含对应的文档以及代码）：
+* ``GrammarInterpratation``: 文法解读
 * ``LexicalAnalysis``: 词法分析
 * ``SyntaxAnalysis``: 语法分析
 * ``ErrorHandling``: 错误处理
