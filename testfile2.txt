@@ -1,0 +1,23 @@
+// #include<stdio.h>
+int a[2][2] = {{0, 8}, {8, 7}};
+const int b[2][1] = {{0}, {9}}, MAGIC = 3;
+int c[2][1] = {{0}, {9}}; 
+
+int x(int z[][2], int y[][1]) {
+    return z[1][0] + y[0][1];
+}
+
+void y(int d[], int c[][MAGIC], int g) {
+    ;;;
+}
+
+int main() {
+    printf("20376156\n");
+    a[0][0] = b[1][0] + a[0][1]; // 17
+    if (a[0][0] == x(a, c)) ;;;
+    int a1[2] = {0, 1}, a2[3][3];
+    y(a1, a2, a2[0][MAGIC - 1]);
+    printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");
+    printf("1\n");printf("1\n");printf("1\n");
+    return 0;
+}

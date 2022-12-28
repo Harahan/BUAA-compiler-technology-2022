@@ -1,0 +1,13 @@
+const int a[3] = {1, 2, 3}, kkk = 0, b[2] = {0, 9};
+
+int main() {
+    printf("20376156\n");
+    int a = 1;
+    printf("%d\n", a);
+    {
+        int a[2] = {8, 9};
+        printf("%d\n", a[1]);
+    }
+    printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");
+    return 0;
+}

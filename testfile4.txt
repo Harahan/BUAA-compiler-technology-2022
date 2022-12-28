@@ -1,0 +1,7 @@
+int main() {
+    printf("20376156\n");
+    if (!1) printf("ddd\n");
+    printf("hhh%d\n", -1);
+    printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");
+    return 0;
+}

@@ -1,0 +1,23 @@
+void k() {
+    ;
+    return;
+}
+
+void p() {
+    printf("kkk\n");;;
+}
+
+int main() {
+    printf("20376156\n");
+    // return 0;
+    k();
+    p();
+    int c;
+    c = getint();
+    printf("@%dkywiuefweooiio888*\n", c);
+    c = -c;
+    c = +c;
+    printf("%d\n", c);
+    printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");printf("1\n");
+    return 0;
+}

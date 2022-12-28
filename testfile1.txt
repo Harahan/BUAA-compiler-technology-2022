@@ -1,0 +1,51 @@
+//#include<stdio.h>
+const int maxn = 100000;
+int MAGIC = 5;
+
+int prime[100000], vis[100000], cnt = 0;
+
+int work(int n){
+    vis[0] = 1;
+    vis[1] = 1;
+    int i = 2;
+    while(i <= n){
+        if(vis[i] == 0) {
+            cnt = cnt + 1; 
+            prime[cnt] = i;
+        }
+        int j = 1;
+        while (i * prime[j] <= n && j <= cnt){
+            vis[i * prime[j]] = 1;
+            if(i % prime[j] == 0) break;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    int x = prime[cnt] - n;
+    return x;
+}
+
+int fib(int x) {
+    if (x <= 1) return 1;
+    return fib(x - 1) + fib(x - 2);
+}
+
+
+int main() {
+    printf("20376156\n");
+    if (work(9982) != 0) {
+        printf("9982 is not a prime!\nprime[-1] = %d\n", prime[cnt - 1]); ;
+    }
+    int p = 0;
+    while (p < 5) {
+        p = p * (p % 2 + 1) / 1 + 2 - 1;
+    }
+    printf("%dqwq/\n", p);
+    int c = 0, d = 1;
+    if ((1 + d) != 1 && d != 2 && 2 == 1 + d && c == 0 && 3 <= 4 && 4 >= 3 && 2 < 9 + d || 5 + d > 0) {
+        printf("qaq\n");
+    }
+    printf("%d\n", fib(8) + fib(0));printf("1\n");printf("1\n");
+    printf("1\n");printf("1\n");printf("1\n");
+    return 0;
+}
