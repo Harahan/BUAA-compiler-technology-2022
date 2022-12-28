@@ -772,7 +772,7 @@ public class Parser {
      */
     public MulExp parseMulExp() {
         MulExp mulExp = new MulExp(parseUnaryExp());
-        while (getType(now) == Type.MULT ||getType(now) == Type.DIV || getType(now) == Type.MOD) {
+        while (getType(now) == Type.MULT ||getType(now) == Type.DIV || getType(now) == Type.MOD || getType(now) == Type.BITAND) {
             mulExp.addOperator(now);
             peek();
             mulExp.addT(parseUnaryExp());

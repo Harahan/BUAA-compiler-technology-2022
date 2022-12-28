@@ -34,6 +34,7 @@ public class Calc {
                 case MOD: res %= x; break;
                 case MULT: res *= x; break;
                 case DIV: res /= x; break;
+                case AND: res &= x; break;
                 default: assert false;
             }
         }

@@ -411,6 +411,9 @@ public class MipsGenerator {
                 case LE:
                     ans = (intOrd1 <= intOrd2 ? 1 : 0);
                     break;
+                case AND:
+                    ans = intOrd1 & intOrd2;
+                    break;
             }
             mipsCodeList.add(String.valueOf(new Instruction.MI(Instruction.MI.Op.li, regRes, ans)));
         } else {
@@ -566,6 +569,9 @@ public class MipsGenerator {
                         break;
                     case LE:
                         mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.sle, regRes, regOrd1, regOrd2)));
+                        break;
+                    case AND:
+                        mipsCodeList.add(String.valueOf(new Instruction.MMM(Instruction.MMM.Op.and, regRes, regOrd1, regOrd2)));
                         break;
                 }
             } else {

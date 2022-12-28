@@ -25,6 +25,7 @@ public class Code {
         MUL("*"), // MUL VAR VAR VAR
         DIV("/"), // DIV VAR VAR VAR
         MOD("%"), // MOD VAR VAR VAR
+        AND("&"), // AND VAR VAR VAR
         NOT("!"), // NOT VAR (EMPTY) VAR
         EQ("=="), // EQ VAR VAR VAR
         NE("!="), // NE VAR VAR VAR
@@ -80,7 +81,7 @@ public class Code {
 
     public static final HashSet<Op> alu = new HashSet<Op>() {{
         add(Op.ASSIGN); add(Op.SUB); add(Op.MUL); add(Op.ADD); add(Op.MOD); add(Op.NOT); add(Op.DIV);
-        add(Op.EQ); add(Op.GE); add(Op.GT); add(Op.LT); add(Op.LE); add(Op.NE);
+        add(Op.EQ); add(Op.GE); add(Op.GT); add(Op.LT); add(Op.LE); add(Op.NE); add(Op.AND);
     }};
     public static final HashSet<Op> io = new HashSet<Op>() {{
         add(Op.GET_INT); add(Op.PRINT_STR); add(Op.PRINT_INT);

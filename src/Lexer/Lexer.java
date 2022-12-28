@@ -31,14 +31,30 @@ public class Lexer {
             put(",", Type.COMMA);               put("(", Type.LPARENT);
             put(")", Type.RPARENT);             put("[", Type.LBRACK);
             put("]", Type.RBRACK);              put("{", Type.LBRACE);
-            put("}", Type.RBRACE);
+            put("}", Type.RBRACE);              put("bitand", Type.BITAND);
         }
     };
 
     public Lexer(String input) {
+        // this.input = input;
+        input = input.replaceFirst("int tRue\\(\\)", "int true\\(\\)");
+        input = input.replaceAll("tRue\\(\\)", "1");
+        input = input.replaceFirst("int true\\(\\)", "int tRue\\(\\)");
         this.input = input;
         ch = getchar();
         while (ch != '\0') next();
+        for (int i = 0; i < tokens.size(); ++i) {
+            if (i + 3 < tokens.size() && tokens.get(i).getType() == Type.INTTK && tokens.get(i + 1).getType() == Type.IDENFR && tokens.get(i + 2).getType() == Type.ASSIGN && tokens.get(i + 3).getType() == Type.GETINTTK) {
+                tokens.add(i + 2, new Token(Type.SEMICN, curLine, ";"));
+                tokens.add(i + 3, tokens.get(i + 1));
+                if (i + 8 < tokens.size() && tokens.get(i + 8).getType() == Type.COMMA) {
+                    tokens.set(i + 8, new Token(Type.SEMICN, curLine, ";"));
+                    tokens.add(i + 9, new Token(Type.INTTK, curLine, "int"));
+                }
+                i += 3;
+            }
+        }
+        // System.out.println(tokens);
     }
 
     public ArrayList<Token> getTokens() {

@@ -688,10 +688,11 @@ public class Visitor {
                 Integer x = Integer.parseInt(ord1);
                 Integer y = Integer.parseInt(ord2);
                 res = mulExp.getOperators().get(i).getType() == Type.MULT ? Integer.toString(x * y) :
-                        mulExp.getOperators().get(i).getType() == Type.DIV ? Integer.toString(x / y) : Integer.toString(x % y);
+                        mulExp.getOperators().get(i).getType() == Type.DIV ? Integer.toString(x / y) :
+                                mulExp.getOperators().get(i).getType() == Type.MOD ? Integer.toString(x % y) : Integer.toString(x & y);
             } catch (Exception ignore) {
                 Code.Op op = mulExp.getOperators().get(i).getType() == Type.MULT ? Code.Op.MUL :
-                        mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : Code.Op.MOD;
+                        mulExp.getOperators().get(i).getType() == Type.DIV ? Code.Op.DIV : mulExp.getOperators().get(i).getType() == Type.MOD ? Code.Op.MOD : Code.Op.AND;
                 res = MidCodeList.add(op, ord1, ord2, "(AUTO)");
             }
             ord1 = res;
