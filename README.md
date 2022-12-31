@@ -1,4 +1,6 @@
 # BUAA compiler technology 2022
+**不打算做``SSA``，想节省时间且竞速前10的同学可以参考，去掉注释不到7000行代码**
+
 此仓库包括以下分支（每个分支均包含对应的文档以及代码）：
 * ``GrammarInterpretation``: 文法解读
 * ``LexicalAnalysis``: 词法分析
